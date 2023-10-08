@@ -12,13 +12,13 @@ class AuthController extends Controller
     public function login(Request  $request)
     {
         // Check User Credentials For Login
-        if (Auth::attempt($request->only(['email', 'password']))) {
+        if (Auth::attempt($request->only(['name', 'password']))) {
             // create token for logged user
-            $token = Auth::user()->createToken($request->input('email'))->plainTextToken;
+            $token = Auth::user()->createToken($request->input('name'))->plainTextToken;
 
             return response()->json(['result' => true, "user" => Auth::user(), "token" => $token], 200);
         }
-        return response()->json(["result" => false, "error" => " ! password or email is wrong"], 401);
+        return response()->json(["result" => false, "error" => " ! password or name is wrong"], 401);
     }
 
     public function logout(Request $request)
