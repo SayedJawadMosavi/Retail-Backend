@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Models\Employee;
+use App\Models\EmployeeLoan;
+use App\Models\IncomingOutgoing;
+use App\Models\SalaryPayment;
 use App\Models\User;
 
 use Carbon\Carbon;
@@ -55,6 +58,7 @@ class DashboardController extends Controller
     public function reports(Request $request)
     {
 
+      
         $request->validate(
             [
                 'start_date' => ['required', 'date', 'before_or_equal:' . $request->end_date],
@@ -74,7 +78,31 @@ class DashboardController extends Controller
             $date1 = new DateTime($request->end_date);
             $endDate = $date1->format('Y-m-d');
 
+            if ($type == 'incoming') {
+                $data = IncomingOutgoing::whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->where('type', 'incoming')->get();
+                return response()->json($data);
+            }
+            if ($type == 'outgoing') {
+                $data = IncomingOutgoing::whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->where('type', 'outgoing')->get();
+                return response()->json($data);
+            }
+            if ($type == 'salaries') {
+                $data = SalaryPayment::with('employee:id,first_name,last_name,salary,job_title')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->get();
+                return $data;
+                return response()->json($data);
+                // ExchangeMoney::where(DB::raw('Date(created_at)'), '>=', $request->start_date)->where(DB::raw('Date(created_at)'), '<=', $request->end)->get();
+            }
 
+            if ($type == 'employee') {
+                $data = Employee::whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->get();
+                return response()->json($data);
+                // ExchangeMoney::where(DB::raw('Date(created_at)'), '>=', $request->start_date)->where(DB::raw('Date(created_at)'), '<=', $request->end)->get();
+            }
+            if ($type == 'loan_payment') {
+                $data =         EmployeeLoan::with('employee')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->where('employee_id', $request->employee_id)->get();
+               
+                return response()->json($data);
+            }
             //code...
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
