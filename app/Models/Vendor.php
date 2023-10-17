@@ -31,7 +31,7 @@ class Vendor extends Model
     }
     public function items()
     {
-        return $this->hasMany(PurchaseItem::class, 'vendor_id');
+        return $this->hasMany(PurchaseDetail::class, 'vendor_id');
     }
     public function purchases()
     {

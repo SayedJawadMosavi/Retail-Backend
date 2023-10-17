@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\EmployeeLoan;
 use App\Models\IncomingOutgoing;
+use App\Models\PurchaseDetail;
 use App\Models\SalaryPayment;
 use App\Models\User;
 
@@ -95,6 +96,11 @@ class DashboardController extends Controller
 
             if ($type == 'employee') {
                 $data = Employee::whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->get();
+                return response()->json($data);
+                // ExchangeMoney::where(DB::raw('Date(created_at)'), '>=', $request->start_date)->where(DB::raw('Date(created_at)'), '<=', $request->end)->get();
+            }
+            if ($type == 'detail') {
+                $data = PurchaseDetail::where('product_id',$request->detail_id)->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->get();
                 return response()->json($data);
                 // ExchangeMoney::where(DB::raw('Date(created_at)'), '>=', $request->start_date)->where(DB::raw('Date(created_at)'), '<=', $request->end)->get();
             }

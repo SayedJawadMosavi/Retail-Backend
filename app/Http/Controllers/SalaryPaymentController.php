@@ -29,7 +29,6 @@ class SalaryPaymentController extends Controller
             $query = $query->with('employee:id,first_name,last_name,salary,job_title');
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
-
             $allTotal = clone $query;
             $allTotal = $allTotal->count();
             if ($request->tab == 'trash') {

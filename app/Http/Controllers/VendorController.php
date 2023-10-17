@@ -28,11 +28,7 @@ class VendorController extends Controller
             $query = new Vendor();
             $searchCol = ['organization_name', 'name', 'email', 'phone_number', 'created_at'];
             $query = $this->search($query, $request, $searchCol);
-            // $query = $query->with('items')
-            //     ->withSum('extraExpense', 'price')
-            //     ->withCount('items')
-            //     ->withCount('purchases')
-            //     ->with('purchases');
+            $query = $query->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'yen_cost')->withSum('items', 'total');
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
 
@@ -44,44 +40,11 @@ class VendorController extends Controller
             $query = $query->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
-            // $results = $results->map(function ($result) {
-                // $afg = 0;
-                // $usd = 0;
-                // $afg_paid=0;
-                // $extra_afg_cost=0;
-                // $extra_usd_cost=0;
-                // $usd_paid=0;
-                // foreach ($result->items as $key) {
-                //     if ($key->currency == 'Afg') {
-                //         $afg += $key->cost;
-                //     } else {
-                //         $usd += $key->cost;
-                //     }
-                // }
-                // foreach ($result->payments as $key) {
-                //     if ($key->currency == 'Afg') {
-                //         $afg_paid += $key->amount;
-                //     } else {
-                //         $usd_paid += $key->amount;
-                //     }
-                // }
-                // foreach ($result->extraExpense as $key) {
-                //     if ($key->currency == 'Afg') {
-                //         $extra_afg_cost += $key->price;
-                //     } else {
-                //         $extra_usd_cost += $key->price;
-                //     }
-                // }
-                // $result->total_price_afg=$afg+$extra_afg_cost;
-                // $result->total_price_usd=$usd+$extra_usd_cost;
-                // $result->total_price_afg_paid=$afg_paid;
-                // $result->total_price_usd_paid=$usd_paid;
-                // $result->total_reminder_afg=$afg+$extra_afg_cost-$afg_paid;
-                // $result->total_reminder_usd=$usd+$extra_usd_cost-$usd_paid;
-                // $result->extra_expense_sum_price_afg=$extra_afg_cost;
-                // $result->extra_expense_sum_price_usd=$extra_usd_cost;
-                // return $result;
-            // });
+            $results = $results->map(function ($result) {
+                $result->total_price = $result->items_sum_total + $result->extra_expense_sum_price;
+                $result->remainder = $result->total_price - $result->payments_sum_amount;
+                return $result;
+            });
 
             return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['vendors' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
@@ -137,11 +100,11 @@ class VendorController extends Controller
         try {
 
             $query = new Purchase();
-            $query =  $query->whereVendorId($id)->with('vendor')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'cost');
+            $query =  $query->whereVendorId($id)->with('vendor')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total');
             $purchases = $query->latest()->get();
             $purchases = collect($purchases);
             $purchases = $purchases->map(function ($result) {
-                $result->total_price = $result->items_sum_cost + $result->extra_expense_sum_price;
+                $result->total_price = $result->items_sum_total + $result->extra_expense_sum_price;
                 $result->remainder = $result->total_price - $result->payments_sum_amount;
                 $result->paid_amount = $result->total_price - $result->remainder;
                 return $result;
@@ -269,12 +232,12 @@ class VendorController extends Controller
     {
         try {
             $query = new Purchase();
-            $query = $query->whereVendorId($request->id)->with('vendor')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'cost');
+            $query = $query->whereVendorId($request->id)->with('vendor')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total');
 
             $results = $query->latest()->get();
             $results = collect($results);
             $results = $results->map(function ($result) {
-                $result->total_price = $result->items_sum_cost + $result->extra_expense_sum_price;
+                $result->total_price = $result->items_sum_total + $result->extra_expense_sum_price;
                 $result->remainder = $result->total_price - $result->payments_sum_amount;
                 return $result;
             });

@@ -71,9 +71,17 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function show(string $id)
     {
-        //
+
+        try {
+            $detail = new Product();
+            $detail = $detail->with(['detail' => fn ($q) => $q->withTrashed()])->find($id);
+            return response()->json($detail);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json($th->getMessage(), 500);
+        }
     }
 
     /**
