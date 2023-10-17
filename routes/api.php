@@ -22,6 +22,7 @@ Route::group(['prefix' => 'v1'], function () {
         require __DIR__ . '/api/user_routes.php';
         require __DIR__ . '/api/vendor_routes.php';
         require __DIR__ . '/api/product_routes.php';
+        require __DIR__ . '/api/product_category_routes.php';
         require __DIR__ . '/api/incoming_outgoing_routes.php';
         require __DIR__ . '/api/employee_routes.php';
         require __DIR__ . '/api/treasury_log_routes.php';
