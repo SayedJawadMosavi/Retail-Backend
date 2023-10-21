@@ -27,6 +27,9 @@ Route::group(['prefix' => 'v1'], function () {
         require __DIR__ . '/api/employee_routes.php';
         require __DIR__ . '/api/treasury_log_routes.php';
         require __DIR__ . '/api/purchase_routes.php';
+        require __DIR__ . '/api/stock_routes.php';
+        require __DIR__ . '/api/product_stock__transfer_routes.php';
+        require __DIR__ . '/api/stock_to_stock_routes.php';
         Route::get("analytics", [DashboardController::class, "index"]);
         Route::get("reports", [DashboardController::class, "reports"]);
     });
