@@ -6,13 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Container extends Model
+class SellPayment extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
-    protected $fillable = [
-        'name',
-        'status',
-        'expense'
-    ];
+    use HasFactory, SoftDeletes;
+    protected $fillable = ['sell_id', 'amount','description', 'customer_id', 'created_by'];
 }

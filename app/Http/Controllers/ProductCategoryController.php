@@ -87,9 +87,24 @@ class ProductCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ProductCategory $productCategory)
+    public function update(Request $request, string $id)
     {
-        //
+
+        try {
+            DB::beginTransaction();
+            $category =  ProductCategory::find($request->id);
+            // $attributes = $request->only($category->getFillable());
+            // $attributes['status'] = 'false';
+            $category->update([
+                'name' => $request->name,
+
+            ]);
+            DB::commit();
+            return response()->json($category, 202);
+        } catch (\Exception $th) {
+            DB::rollBack();
+            return response()->json($th->getMessage(), 500);
+        }
     }
 
     /**

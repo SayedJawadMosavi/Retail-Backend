@@ -13,11 +13,11 @@ class VendorController extends Controller
 {
     public function __construct()
     {
-        // $this->middleware('permissions:vendor_view')->only('index');
-        // $this->middleware('permissions:vendor_create')->only(['store', 'update']);
-        // $this->middleware('permissions:vendor_delete')->only(['destroy']);
-        // $this->middleware('permissions:vendor_restore')->only(['restore']);
-        // $this->middleware('permissions:vendor_force_delete')->only(['forceDelete']);
+        $this->middleware('permissions:vendor_view')->only('index');
+        $this->middleware('permissions:vendor_create')->only(['store', 'update']);
+        $this->middleware('permissions:vendor_delete')->only(['destroy']);
+        $this->middleware('permissions:vendor_restore')->only(['restore']);
+        $this->middleware('permissions:vendor_force_delete')->only(['forceDelete']);
     }
     /**
      * Display a listing of the resource.
@@ -128,11 +128,11 @@ class VendorController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        
+
         $this->storeValidation($request);
         try {
             DB::beginTransaction();
-        
+
             $vendor = Vendor::find($request->id);
             $attributes = $request->only($vendor->getFillable());
             $vendor->update($attributes);
@@ -143,14 +143,14 @@ class VendorController extends Controller
             return response()->json($th->getMessage(), 500);
         }
     }
-    public function changeStatus(Request $request)
+
+    public function changeStatus($id,$value)
     {
         try {
-            $status = $request->status;
-            if ($status == false) {
-                $vendor = Vendor::where('id', $request->id)->update(['status'  => true]);
-            } else {
-                $vendor = Vendor::where('id', $request->id)->update(['status'  => false]);
+            if ($id==1) {
+                $vendor=Vendor::where('id',$value)->update(['status'  =>0]);
+            }else if ($id==0) {
+                $vendor=Vendor::where('id',$value)->update(['status'  =>1]);
             }
             return response()->json($vendor, 202);
         } catch (\Throwable $th) {

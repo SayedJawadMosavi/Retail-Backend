@@ -17,6 +17,14 @@ use Illuminate\Support\Facades\DB;
 
 class PurchaseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permissions:purchase_view')->only('index');
+        $this->middleware('permissions:purchase_create')->only(['store', 'update']);
+        $this->middleware('permissions:purchase_delete')->only(['destroy']);
+        $this->middleware('permissions:purchase_restore')->only(['restore']);
+        $this->middleware('permissions:purchase_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -65,8 +73,10 @@ class PurchaseController extends Controller
     {
        //
        try {
-     
+
+
         DB::beginTransaction();
+        $this->storeValidation($request);
         $purchase = new Purchase();
         $user_id = Auth::user()->id;
         $attributes = $request->only($purchase->getFillable());
@@ -80,7 +90,7 @@ class PurchaseController extends Controller
         // $attributes['id'] = 2;
         $purchase =  $purchase->create($attributes);
         foreach ($request->items as $item) {
-      
+
             $item['created_by'] = $user_id;
             $item['purchase_id'] = $purchase->id;
             $item['product_id'] = $item['product_id']['id'];
@@ -93,11 +103,12 @@ class PurchaseController extends Controller
             $item['total'] = ((($item['cost']/ $item['rate']) + $item['expense']) * $item['quantity']);
             PurchaseDetail::create($item);
         }
+
         foreach ($request->extra_expense as $exp) {
             $exp['created_by'] = $user_id;
             $exp['purchase_id'] = $purchase->id;
-            $exp['vendor_id'] = $purchase->vendor_id['id'];
-            $item['created_at'] = $request->date;
+            $exp['vendor_id'] = $request->vendor_id['id'];
+            $item['created_at'] = $dates->format("Y-m-d");
             PurchaseExtraExpense::create($exp);
         }
 
@@ -154,18 +165,18 @@ class PurchaseController extends Controller
 
             $dates = new DateTime($date1);
             if (isset($request->vendor_id['id'])) {
-             
+
                 $purchase->vendor_id=$request->vendor_id['id'];
             }
             $purchase->vendor_id=$request->vendor_id;
             if (isset($request->container_id['id'])) {
-             
+
                 $purchase->container_id=$request->container_id['id'];
             }
             $purchase->container_id=$request->container_id;
             $purchase->purchase_date=$dates->format("Y-m-d");
             $purchase->update($attributes);
-          
+
             DB::commit();
             return response()->json($purchase, 202);
         } catch (\Throwable $th) {
@@ -212,7 +223,7 @@ class PurchaseController extends Controller
 
     public function destroy(string $type, string $id)
     {
-      
+
         try {
             DB::beginTransaction();
             $ids = explode(",", $id);
@@ -311,13 +322,13 @@ class PurchaseController extends Controller
     {
         return $request->validate(
             [
-          
+
                 'container_id' => [
                     'required',
                 ],
-                
-                'rate' => 'required|numeric|min:0',
-                'product_id' => 'required',
+
+
+
                 'vendor_id' => 'required',
 
                 'paid_amount' => 'numeric:min:0',
@@ -332,14 +343,14 @@ class PurchaseController extends Controller
             [
                 'vendor_id.required' => ' اسم معامله دار ضروری میباشد!',
                 'container_id.required' => 'نمبر کانتینر ضروری میباشد!',
-          
+
                 "purchase_date.required" => "تاریخ ثبت ضروری میباشد",
                 "purchase_date.date" => "تاریخ درست نمی باشد",
                 "purchase_date.before_or_equal" => "تاریخ ثبت بزرگتر از تاریخ فعلی شده نمیتواند!",
-               
-                'rate.required' => 'نرخ ضروری میباشد ',
-                'rate.numeric' => 'نرخ باید عدد باشد',
-                'rate.min' => 'نرخ کمتر از یک شده نمیتواند',
+
+                'item.*.rate.required' => 'نرخ ضروری میباشد ',
+                'item.*.rate.numeric' => 'نرخ باید عدد باشد',
+                'item.*.rate.min' => 'نرخ کمتر از یک شده نمیتواند',
                 'paid_amount.numeric' => 'مقدار پرداختی باید عدد باشد',
                 'paid_amount.min' => 'مقدار پرداختی کمتر از یک شده نمی تواند',
                 'items.required' => 'موارد ضروری می باشد',
@@ -350,7 +361,7 @@ class PurchaseController extends Controller
                 'items.*.cost.numeric' => 'قیمت در موارید باید عدد باشد',
                 'items.*.cost.min' => 'قیمت در موارید از یک کمتر بوده نمی تواند',
                 'items.*.qunantity.required' => 'مقدار در موارید ضروری می باشد',
-           
+
                 'extra_expense.sometimes' => 'مصرف اضافه',
                 'extra_expense.array' => 'مصرف اضافه باید لیست باشد',
                 'extra_expense.*.name.required_with' => 'نام در مصرف اضافه ضرور می باشد',
@@ -365,20 +376,20 @@ class PurchaseController extends Controller
     {
         return $request->validate(
             [
-              
+
                 'purchase_date' => ['required', 'date', 'before_or_equal:' . now()],
                 'container_id' => 'required',
                 'vendor_id' => 'required',
-                
+
             ],
             [
-             
+
                 "purchase_date.required" => "تاریخ ثبت ضروری میباشد",
                 "purchase_date.date" => "تاریخ ثبت درست نمی باشد",
                 "purchase_date.before_or_equal" => "تاریخ ثبت بزرگتر از تاریخ فعلی شده نمیتواند!",
                 'container_id.required' => 'اسم کانتینر ضروری میباشد',
                 'vendor_id.required' => '  اسم معامله گر ضروری میباشد',
-                
+
             ]
         );
     }
@@ -388,7 +399,7 @@ class PurchaseController extends Controller
         try {
             $request->validate(
                 [
-                
+
                     'purchase_id' => ['required', 'exists:purchases,id'],
                     'created_at' => ['required', 'date', 'before_or_equal:' . now()],
                     'product_id' => 'required',
@@ -397,7 +408,7 @@ class PurchaseController extends Controller
                     'expense' => 'required|numeric|min:0.01',
                 ],
                 [
-                  
+
                     'purchase_id.required' => 'نمبر محصول ضروری میباشد!',
                     'purchase_id.exists' => 'نمبر محصول در سیستم موجود نیست!',
                     "created_at.required" => "تاریخ ثبت ضروری میباشد",
@@ -428,7 +439,7 @@ class PurchaseController extends Controller
             $attributes['purchase_id'] = $purchase->id;
             $attributes['product_id'] = $request->product_id['id'];
             $attributes['vendor_id'] = $purchase->vendor_id;
-      
+
             $attributes['rate'] = $request->rate;
             $attributes['yen_cost'] = $request->cost;
 
@@ -449,7 +460,7 @@ class PurchaseController extends Controller
 
             $request->validate(
                 [
-                
+
                     'purchase_id' => ['required', 'exists:purchases,id'],
                     'created_at' => ['required', 'date', 'before_or_equal:' . now()],
                     'product_id' => 'required',
@@ -458,7 +469,7 @@ class PurchaseController extends Controller
                     'expense' => 'required|numeric|min:0.01',
                 ],
                 [
-                  
+
                     'purchase_id.required' => 'نمبر محصول ضروری میباشد!',
                     'purchase_id.exists' => 'نمبر محصول در سیستم موجود نیست!',
                     "created_at.required" => "تاریخ ثبت ضروری میباشد",
@@ -483,15 +494,15 @@ class PurchaseController extends Controller
 
             $dates = new DateTime($date1);
             $detail->created_at = $dates->format("Y-m-d");
-         
+
             if(isset($request->product_id['id'])){
                 $detail->product_id = $request->product_id['id'];
-                
+
             }else{
 
                 $detail->product_id = $request->product['id'];
             }
-           
+
             $detail->yen_cost = $request->cost;
             $detail->quantity = $request->quantity;
             $detail->rate = $request->rate;
@@ -513,13 +524,13 @@ class PurchaseController extends Controller
         try {
             $request->validate(
                 [
-             
+
                     'purchase_id' => ['required', 'exists:purchases,id'],
                     'created_at' => ['required', 'date', 'before_or_equal:' . now()],
                     'amount' => 'required|numeric|min:1',
                 ],
                 [
-                   
+
                     'purchase_id.required' => 'نمبر خرید ضروری میباشد!',
                     'purchase_id.exists' => 'نمبر خرید در سیستم موجود نیست!',
                     "created_at.required" => "تاریخ ثبت ضروری میباشد",
@@ -606,14 +617,14 @@ class PurchaseController extends Controller
         try {
             $request->validate(
                 [
-                
+
                     'purchase_id' => ['required', 'exists:purchases,id'],
                     'created_at' => ['required', 'date', 'before_or_equal:' . now()],
                     'name' => 'required',
                     'price' => 'required|numeric|min:1',
                 ],
                 [
-                   
+
                     'purchase_id.required' => 'نمبر خرید ضروری میباشد!',
                     'purchase_id.exists' => 'نمبر خرید در سیستم موجود نیست!',
                     "created_at.required" => "تاریخ ثبت ضروری میباشد",
@@ -675,8 +686,8 @@ class PurchaseController extends Controller
     public function checkStatus($id)
     {
         try {
-          
-          
+
+
             $purchase = PurchaseDetail::where('purchase_id', $id)->get();
             $total=0;
             foreach ($purchase as $key ) {
@@ -684,7 +695,7 @@ class PurchaseController extends Controller
                 $p=  Product::find($key->product_id);
                 $product= Product::find($key->product_id)->update([
                 'quantity'    =>$p->quantity+$key->quantity,
-              
+
                ]);
             }
             Purchase::find($id)->update(['status'   =>'recieved']);

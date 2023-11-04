@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\DB;
 
 class StockToStockTransferController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permissions:stock_to_stock_transfer_view')->only('index');
+        $this->middleware('permissions:stock_to_stock_transfer_create')->only(['store', 'update']);
+        $this->middleware('permissions:stock_to_stock_transfer_delete')->only(['destroy']);
+        $this->middleware('permissions:stock_to_stock_transfer_restore')->only(['restore']);
+        $this->middleware('permissions:stock_to_stock_transfer_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -31,7 +39,7 @@ class StockToStockTransferController extends Controller
             $query = $query->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
-        
+
             return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['stock_receivers_transfer' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -53,7 +61,7 @@ class StockToStockTransferController extends Controller
     {
         $this->storeValidation($request);
 
-      
+
         try {
 
             DB::beginTransaction();
@@ -64,10 +72,10 @@ class StockToStockTransferController extends Controller
             $attributes['receiver_stock_id'] = $request->receiver['id'];
             $attributes['quantity'] = $request->amount;
             $product_stock_id=  ProductStock::where('id',$request->product['id'])->first();
-        
+
             $check=  ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->count();
-            
-         
+
+
             if ($check==0) {
                 $product_stock = new ProductStock();
                 $attributess = $request->only($product_stock->getFillable());
@@ -75,11 +83,11 @@ class StockToStockTransferController extends Controller
                 $attributess['stock_id'] = $request->receiver['id'];
                 $attributess['quantity'] = $request->amount;
                 $product_stock =  $product_stock->create($attributess);
-                              
+
                 $from_product = ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
 
             }else{
-              
+
                 $from_product = ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
                 ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->increment('quantity', $request->amount);
                 $product_stock =ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->first();
@@ -89,8 +97,8 @@ class StockToStockTransferController extends Controller
                 $product =  $product->create($attributes);
 
 
-            
-          
+
+
             DB::commit();
             return response()->json($product, 201);
         } catch (\Exception $th) {
@@ -122,83 +130,91 @@ class StockToStockTransferController extends Controller
     public function update(Request $request, string $id)
     {
         try {
-           
+
             DB::beginTransaction();
 
             $product = StockToStockTransfer::find($request->id);
-            
+
             if (isset($request->product['id'])) {
+
                 $attributes['sender_stock_product_id'] = $request->product['id'];
                 $product_stock_id=  ProductStock::where('id',$request->product['id'])->first();
             }else{
+
+
                 $attributes['sender_stock_product_id'] = $product->sender_stock_product_id;
                 $product_stock_id=  ProductStock::where('id',$product->sender_stock_product_id)->first();
             }
-          
-          
+
+
             $attributes = $request->only($product->getFillable());
             $attributes['sender_stock_id'] = $request->sender['id'];
             $attributes['receiver_stock_id'] = $request->receiver['id'];
             $attributes['sender_stock_product_id'] = $product_stock_id->id;
             $attributes['quantity'] = $request->amount;
-            
-           
-            
+
+
+
             // $sender_stock_product_id = ProductStock::find($product->sender_stock_product_id);
 
             // $receiver_product_stock_id = ProductStock::where('stock_id',$request->receiver['id'])->where('product_id',$product_stock_id->product_id)->first();
             $check=  ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->count();
             if ($check==0) {
+
                 $product_stock = new ProductStock();
                 $attributess = $request->only($product_stock->getFillable());
                 $attributess['product_id'] = $product_stock_id->product_id;
                 $attributess['stock_id'] = $request->receiver['id'];
-                $attributess['quantity'] = $request->amount;
+                $attributess['quantity'] = 0;
                 $product_stock =  $product_stock->create($attributess);
                 $receiver_stock_product_id = $product_stock->id;
                 $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
                 $from_product = ProductStock::where('id', $product_stock_id->id)->decrement('quantity', $request->amount);
-            }else{
+            }
 
                 $receiver_stock_product_id = ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->first();
                 if (isset($request->product['id'])) {
-                    return 'yes';
-                    if ($request->product['product_id'] == $product->sender_stock_product_id) {
+
+
+                    if ($request->product['id'] == $product->sender_stock_product_id) {
+                        return $product->sender_stock_product_id;
                         $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
                         $sender_stock_product_id =  ProductStock::find($product->sender_stock_product_id);
-                        
+
                         $sender_stock_product_id->decrement('quantity', $request->amount);
-                        
-                        
+
+
                         $receiver_stock_product_id->decrement('quantity', $product->quantity);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
                     }else{
+
                         ProductStock::find($product->sender_stock_product_id)->increment('quantity', $product->quantity);
                         ProductStock::find($product->receiver_stock_product_id)->decrement('quantity', $product->quantity);
-                        ProductStock::find($request->product['product_id'])->decrement('quantity', $request->amount);
+                        ProductStock::find($request->product['id'])->decrement('quantity', $request->amount);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
                     }
                 }else{
-                    return 'no';
-                    if ($request->product['product_id'] == $product->sender_stock_product_id) {
+
+                    if ($request->product_stock['id'] == $product->sender_stock_product_id) {
                         $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
                         $sender_stock_product_id =  ProductStock::find($product->sender_stock_product_id);
-                        
+
                         $sender_stock_product_id->decrement('quantity', $request->amount);
-                        
-                        
+
+
                         $receiver_stock_product_id->decrement('quantity', $product->quantity);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
                     }else{
                         ProductStock::find($product->sender_stock_product_id)->increment('quantity', $product->quantity);
                         ProductStock::find($product->receiver_stock_product_id)->decrement('quantity', $product->quantity);
-                        ProductStock::find($request->product_stock['product_id'])->decrement('quantity', $request->amount);
-                        $receiver_stock_product_id->increment('quantity', $request->amount);
+
+                        ProductStock::find($request->product['id'])->decrement('quantity', $request->amount);
+                        $product_stock->increment('quantity', $request->amount);
                     }
                 }
-              
 
-            }
+
+
             $attributes['receiver_stock_product_id'] = $receiver_stock_product_id->id;
 
             $product =  $product->update($attributes);
@@ -216,12 +232,12 @@ class StockToStockTransferController extends Controller
      */
     public function destroy(StockToStockTransfer $stockToStockTransfer)
     {
-       
+
     }
 
     public function getProduct($id)
     {
-     
+
         try {
             $product = ProductStock::with('product')->where('stock_id', $id)->get();
             return response()->json($product);

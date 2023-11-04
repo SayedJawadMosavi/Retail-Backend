@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permissions:product_view')->only('index');
+        $this->middleware('permissions:product_create')->only(['store', 'update']);
+        $this->middleware('permissions:product_delete')->only(['destroy']);
+        $this->middleware('permissions:product_restore')->only(['restore']);
+        $this->middleware('permissions:product_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -30,7 +38,7 @@ class ProductController extends Controller
             $query = $query->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
-        
+
             return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['products' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -50,7 +58,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-       
+
         $this->storeValidation($request);
         try {
             DB::beginTransaction();
@@ -100,11 +108,11 @@ class ProductController extends Controller
         $this->storeValidation($request);
         try {
             DB::beginTransaction();
-        
+
             $product = Product::find($request->id);
             $attributes = $request->only($product->getFillable());
             if (!isset($request->category_id['id'])) {
-                $attributes['category_id']=$request->category['id'];  
+                $attributes['category_id']=$request->category['id'];
             }else {
                 $attributes['category_id']=$request->category_id['id'];
 
@@ -165,7 +173,7 @@ class ProductController extends Controller
             return response()->json($th->getMessage(), 500);
         }
     }
-    
+
     public function storeValidation($request)
     {
         return $request->validate(
@@ -173,14 +181,14 @@ class ProductController extends Controller
                 'company_name' => 'required',
                 'product_name' => 'required',
                 'category_id' => 'required',
-               
+
 
             ],
             [
                 'company_name.required' => "اسم کمپنی ضروری میباشد",
                 'product_name.required' => "اسم محصول میباشد",
                 'categor_id.required' => "کتگوری ضروری میباشد",
-              
+
 
             ]
 
@@ -195,14 +203,14 @@ class ProductController extends Controller
             return response()->json($th->getMessage(), 500);
         }
     }
-    public function changeStatus(Request $request)
+
+    public function changeStatus($id,$value)
     {
         try {
-            $status = $request->status;
-            if ($status == false) {
-                $product = Product::where('id', $request->id)->update(['status'  => true]);
-            } else {
-                $product = Product::where('id', $request->id)->update(['status'  => false]);
+            if ($id==1) {
+                $product=Product::where('id',$value)->update(['status'  =>0]);
+            }else if ($id==0) {
+                $product=Product::where('id',$value)->update(['status'  =>1]);
             }
             return response()->json($product, 202);
         } catch (\Throwable $th) {

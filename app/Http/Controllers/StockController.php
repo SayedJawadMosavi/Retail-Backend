@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permissions:stock_view')->only('index');
+        $this->middleware('permissions:stock_create')->only(['store', 'update']);
+        $this->middleware('permissions:stock_delete')->only(['destroy']);
+        $this->middleware('permissions:stock_restore')->only(['restore']);
+        $this->middleware('permissions:stock_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -103,9 +111,9 @@ class StockController extends Controller
     {
         $this->storeValidation($request);
         try {
-           
+
             DB::beginTransaction();
-        
+
             $stock = Stock::find($request->id);
             $attributes = $request->only($stock->getFillable());
             $stock->update($attributes);

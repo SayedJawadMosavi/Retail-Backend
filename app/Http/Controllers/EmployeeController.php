@@ -21,11 +21,11 @@ class EmployeeController extends Controller
 
     public function __construct()
     {
-        // $this->middleware('permissions:employee_view')->only('index');
-        // $this->middleware('permissions:employee_create')->only(['store', 'update']);
-        // $this->middleware('permissions:employee_delete')->only(['destroy']);
-        // $this->middleware('permissions:employee_restore')->only(['restore']);
-        // $this->middleware('permissions:employee_force_delete')->only(['forceDelete']);
+        $this->middleware('permissions:employee_view')->only('index');
+        $this->middleware('permissions:employee_create')->only(['store', 'update']);
+        $this->middleware('permissions:employee_delete')->only(['destroy']);
+        $this->middleware('permissions:employee_restore')->only(['restore']);
+        $this->middleware('permissions:employee_force_delete')->only(['forceDelete']);
     }
     public $path = "images/employees";
 
@@ -340,7 +340,7 @@ class EmployeeController extends Controller
     public function reports(Request $request)
     {
 
-       
+
         if ($request->type == "salaries") {
             try {
                 $query = new SalaryPayment();

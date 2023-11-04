@@ -18,11 +18,11 @@ class IncomingOutgoingController extends Controller
 
     public function __construct()
     {
-        // $this->middleware('permissions:income_view')->only('index');
-        // $this->middleware('permissions:income_create')->only(['store', "update"]);
-        // $this->middleware('permissions:income_delete')->only(['destroy']);
-        // $this->middleware('permissions:income_restore')->only(['restore']);
-        // $this->middleware('permissions:income_force_delete')->only(['forceDelete']);
+        $this->middleware('permissions:income_expense_view')->only('index');
+        $this->middleware('permissions:income_expense_create')->only(['store', "update"]);
+        $this->middleware('permissions:income_expense_delete')->only(['destroy']);
+        $this->middleware('permissions:income_expense_restore')->only(['restore']);
+        $this->middleware('permissions:income_expense_force_delete')->only(['forceDelete']);
     }
 
 
@@ -130,7 +130,7 @@ class IncomingOutgoingController extends Controller
             $attributes = $request->only($incomingOutgoing->getFillable());
             $incomingOutgoing->update($attributes);
             if ($request->type=="incoming") {
-           
+
                 $log = TreasuryLog::withTrashed()->where(['table' => 'incoming', 'table_id' => $request->id])->first();
                 $log->amount = $request->amount;
                 $log->save();

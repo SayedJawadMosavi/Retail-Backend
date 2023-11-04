@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\TreasuryLog;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Morilog\Jalali\Jalalian;
 
 class TreasuryLogController extends Controller
@@ -17,14 +19,14 @@ class TreasuryLogController extends Controller
         try {
 
             $query = new TreasuryLog();
-     
+
             $total_amount_income_usd = clone $query;
             $total_amount_income_usd = $total_amount_income_usd->whereDate('created_at', \DB::raw('CURDATE()'))->where('type','deposit')->sum('amount');
-        
-     
+
+
             $total_expense_usd = clone $query;
             $total_expense_usd = $total_expense_usd->whereDate('created_at', \DB::raw('CURDATE()'))->where('type','withdraw')->sum('amount');
-                                                           
+
             $searchCol = ['name', 'type', 'amount', 'created_by'];
             $query = $this->search($query, $request, $searchCol);
 
@@ -41,14 +43,14 @@ class TreasuryLogController extends Controller
                 $query = $query->onlyTrashed();
             }
             else {
-                
+
                 $query = $query->whereDate('created_at', \DB::raw('CURDATE()'));
-            
+
             }
 
             $query = $query->with(['user:id,name'])->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
-          
+
             $total = $query->total();
 
             $result = [
@@ -114,64 +116,57 @@ class TreasuryLogController extends Controller
 
     public function reports(Request $request)
     {
-       
         try {
-
+            $date1 = new DateTime($request->start_date);
+            $startDate = $date1->format('Y-m-d');
+            $date1 = new DateTime($request->end_date);
+            $endDate = $date1->format('Y-m-d');
             $query = new TreasuryLog();
-        
-            $now= Carbon::now();
-            $date_now = jdate($now)->format('Y-m-d');
-          
-            $startDate = $request->start_date;
-            $endDate = $request->end_date;
-           
-          
+
             $total_amount_income_usd = clone $query;
-            $total_amount_income_usd = $total_amount_income_usd->whereBetween('register_date', [$startDate, $endDate])->where('type','income')->where('transaction_type','deposit')->where('currency','USD')->sum('usd_amount');
-        
+            $total_amount_income_usd = $total_amount_income_usd->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->where('type','deposit')->sum('amount');
+
 
             $total_expense_usd = clone $query;
-            $total_expense_usd = $total_expense_usd->whereBetween('register_date', [$startDate, $endDate])->where('type','expense')->where('transaction_type','withdraw')->where('currency','USD')->sum('usd_amount');
-           
-            
-            $total_fees = clone $query;
-            $total_fees = $total_fees->whereBetween('register_date', [$startDate, $endDate])->where('currency','USD')->sum('fees');
-        
-            $searchCol = ['name', 'type','transaction_type', 'amount', 'created_by'];
+            $total_expense_usd = $total_expense_usd->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->where('type','withdraw')->sum('amount');
+
+            $searchCol = ['name', 'type', 'amount', 'created_by'];
             $query = $this->search($query, $request, $searchCol);
 
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
 
             $allLog = clone $query;
-            $allLog = $allLog->whereBetween('register_date', [$startDate, $endDate])->count();
+            $allLog = $allLog->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->count();
 
             $allOutgoing = clone $query;
-            $allOutgoing = $allOutgoing->whereBetween('register_date', [$startDate, $endDate])->count();
+            $allOutgoing = $allOutgoing->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])->count();
 
             if ($request->tab == 'trash') {
                 $query = $query->onlyTrashed();
             }
             else {
-                
-                $query = $query->whereBetween('register_date', [$startDate, $endDate]);
-            
+
+                $query = $query->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+
             }
 
             $query = $query->with(['user:id,name'])->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
-          
+
             $total = $query->total();
 
             $result = [
                 "data" => $results,
                 "total" => $total,
-                "extraTotal" => ['expense' => $allOutgoing, 'treasuryLog' => $allLog, 'trash' => $trashTotal,],
-                'extra' => ['total_deposit' => $total_deposit,'total_amount_income_usd'  =>$total_amount_income_usd,'total_expense_usd'  =>$total_expense_usd,'total_amount_expense_afn'  =>$total_amount_expense_afn,'total_amount_income_afn' =>$total_amount_income_afn, 'total_withdraw' => $total_withdraw,'total_deposit_requested'  =>$total_deposit_requested,'total_withdraw_requested'  =>$total_withdraw_requested,'total_fees'  =>$total_fees,'total_amount_d_afn'  =>$total_amount_d_afn,'total_amount_d_usd'   =>$total_amount_d_usd,'total_amount_w_afn'  =>$total_amount_w_afn,'total_amount_w_usd'  =>$total_amount_w_usd]
+                "extraTotal" => ['expense' => $allOutgoing, 'reports' => $allLog, 'trash' => $trashTotal,],
+                'extra' => ['total_amount_income_usd'  =>$total_amount_income_usd,'total_expense_usd'  =>$total_expense_usd]
+
             ];
             return response()->json($result);
         } catch (Exception $th) {
             return response()->json($th->getMessage(), 500);
         }
     }
+
 }

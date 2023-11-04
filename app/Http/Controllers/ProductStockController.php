@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class ProductStockController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permissions:stock_product_transfer_view')->only('index');
+        $this->middleware('permissions:stock_product_transfer_create')->only(['store', 'update']);
+        $this->middleware('permissions:stock_product_transfer_delete')->only(['destroy']);
+        $this->middleware('permissions:stock_product_transfer_restore')->only(['restore']);
+        $this->middleware('permissions:stock_product_transfer_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -32,7 +40,7 @@ class ProductStockController extends Controller
             $query = $query->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
-        
+
             return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['product_stocks_transfer' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -64,7 +72,7 @@ class ProductStockController extends Controller
             $query = $query->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
-        
+
             return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['product_stocks' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -85,12 +93,12 @@ class ProductStockController extends Controller
             $attributes['stock_id'] = $request->stock['id'];
             $attributes['quantity'] = $request->amount;
           $check=  ProductStock::where('product_id',$request->product['id'])->where('stock_id',$request->stock['id'])->first();
-          
+
             if (!$check) {
 
                 $product =  $product->create($attributes);
             }else{
-              
+
                $product= ProductStock::where('product_id',$request->product['id'])->where('stock_id',$request->stock['id'])->increment('quantity',$request->amount);
                 $product=ProductStock::where('product_id',$request->product['id'])->where('stock_id',$request->stock['id'])->first();
             }
@@ -137,25 +145,25 @@ class ProductStockController extends Controller
         $this->storeValidation($request);
         try {
             DB::beginTransaction();
-        
+
             $product = StockProductTransfer::find($request->id);
             $attributes = $request->only($product->getFillable());
             if (!isset($request->product['id'])) {
-                $attributes['product_id']=$request->product['id'];  
+                $attributes['product_id']=$request->product['id'];
             }else {
                 $attributes['product_id']=$request->product['id'];
 
             }
             if (!isset($request->stock['id'])) {
-                $attributes['stock_id']=$request->stock['id'];  
+                $attributes['stock_id']=$request->stock['id'];
             }else {
                 $attributes['stock_id']=$request->stock['id'];
 
             }
-            
+
             $product->update($attributes);
             if ($product) {
-             
+
                 Product::where('id',$product->product_id)->increment('quantity',$product->quantity);
                 Product::where('id',$product->product_id)->decrement('quantity',$request->amount);
                 ProductStock::where('id',$product->stock_product_id)->decrement('quantity',$product->quantity);
@@ -181,10 +189,10 @@ class ProductStockController extends Controller
             $ids = explode(",", $id);
             $data= StockProductTransfer::withTrashed()->whereIn('id',$ids)->get();
             foreach ($data as $key ) {
-           
+
                 ProductStock::where('product_id',$key->product_id)->where('stock_id',$key->stock_id)->increment('quantity',$key->quantity);
                 Product::where('id',$key->product_id)->decrement('quantity',$key->quantity);
-           
+
             }
            $result= StockProductTransfer::whereIn('id', $ids)->withTrashed()->restore();
             return response()->json($result, 203);
@@ -198,7 +206,7 @@ class ProductStockController extends Controller
         try {
             DB::beginTransaction();
             $ids = explode(",", $id);
-           
+
            $result= StockProductTransfer::whereIn('id', $ids)->withTrashed()->forceDelete();
             DB::commit();
             return response()->json($result, 203);
@@ -214,16 +222,16 @@ class ProductStockController extends Controller
      */
     public function destroy(string $id)
     {
-        
+
         try {
             DB::beginTransaction();
             $ids  = explode(",", $id);
            $data= StockProductTransfer::whereIn('id',$ids)->get();
            foreach ($data as $key ) {
-          
+
                ProductStock::where('product_id',$key->product_id)->where('stock_id',$key->stock_id)->decrement('quantity',$key->quantity);
                Product::where('id',$key->product_id)->increment('quantity',$key->quantity);
-          
+
            }
             $result = StockProductTransfer::whereIn("id", $ids)->delete();
             DB::commit();
@@ -260,15 +268,15 @@ class ProductStockController extends Controller
                 'product' => 'required',
                 'amount' => 'required',
                 'stock' => 'required',
-               
+
 
             ],
             [
-               
+
                 'amount.required' => " مقدار میباشد",
                 'product_name.required' => "اسم محصول میباشد",
                 'stock.required' => "اسم گدام ضروری میباشد",
-              
+
 
             ]
 

@@ -17,6 +17,14 @@ use Illuminate\Support\Facades\DB;
 
 class SalaryPaymentController extends Controller
 {
+    public function __construct()
+    {
+        // $this->middleware('permissions:salaries_view')->only('index');
+        // $this->middleware('permissions:salaries_create')->only(['store', 'update']);
+        // $this->middleware('permissions:salaries_delete')->only(['destroy']);
+        // $this->middleware('permissions:salaries_restore')->only(['restore']);
+        // $this->middleware('permissions:salaries_force_delete')->only(['forceDelete']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -52,7 +60,7 @@ class SalaryPaymentController extends Controller
         //
         try {
             DB::beginTransaction();
- 
+
             $this->storeValidation($request);
             $salary = new SalaryPayment();
             $user_id = Auth::user()->id;
@@ -65,7 +73,7 @@ class SalaryPaymentController extends Controller
             $check =  SalaryPayment::whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)->where('employee_id', $request->employee_id)
                 ->count();
-         
+
             if ($check > 0) {
                 return response()->json(' in one month you can not pay again', 500);
             }
@@ -77,7 +85,7 @@ class SalaryPaymentController extends Controller
             $salary =  $salary->create($attributes);
             $employee = Employee::find($request->employee_id);
             if ($request->employee['salary']-$request->paid>0) {
-              
+
                 $absent=$request->employee['salary']/30*$request->absent;
                 $payable = $request->employee['salary'] - $absent-$request->deduction;
                 $diff = $payable - $request->paid;
@@ -87,13 +95,13 @@ class SalaryPaymentController extends Controller
                 }else{
                     $loan = $employee->loan-$request->deducation - $diff;
                     $loan_remainder= $diff;
-                   
+
                 }
-                
+
                 $employee->loan= $loan;
 
                 $employee->save();
-              
+
                 if ($diff>0) {
                     $employee_loan=  EmployeeLoan::create([
                         'type'    =>"deposit",
@@ -103,10 +111,10 @@ class SalaryPaymentController extends Controller
                         'employee_id'      =>$request->employee['id'],
                         'created_at'      =>$dates->format("Y-m-d")
                        ]);
-                    
-                     
+
+
                        TreasuryLog::create(['table' => "employee_loan",'client_id' =>$request->employee['id'], 'table_id' => $employee_loan->id, 'type' => 'deposit', 'name' => 'آمد بابت  باقی از معاش  ', 'amount' => $diff, 'created_by' => $user_id, 'created_at' => $request->created_at]);
-                
+
                     }
 
                 if (isset($request->deduction)  && $request->deduction>0) {
@@ -118,15 +126,15 @@ class SalaryPaymentController extends Controller
                         'employee_id'      =>$request->employee['id'],
                         'created_at'      =>$dates->format("Y-m-d")
                        ]);
-                 
+
                     TreasuryLog::create(['table' => "employee_loan",'client_id' =>$request->employee['id'], 'table_id' => $employee_loan->id, 'type' => 'deposit', 'name' => 'قرضه کارمند ', 'amount' => $request->deduction, 'created_by' => $user_id, 'created_at' => $request->created_at]);
 
                 }
 
             }
-         
+
             $name = $employee->first_name . ' ' . $employee->last_name;
-          
+
             TreasuryLog::create(['table' => "employee_salary",'client_id' =>$request->employee_id, 'table_id' => $salary->id, 'type' => 'withdraw', 'name' => 'پرداخت معاش ', 'amount' => $request->paid, 'created_by' => $user_id, 'created_at' => $request->created_at]);
 
             DB::commit();
@@ -156,14 +164,14 @@ class SalaryPaymentController extends Controller
             $year = $date->year;
             $month = $date->month;
             $dates = new DateTime($date1);
-            
+
             DB::beginTransaction();
             $salary = SalaryPayment::find($request->id);
             $employee              = Employee::find($salary->employee_id);
             $absent=$request->employee['salary']/30*$request->absent;
             $payable = $request->employee['salary'] - $absent-$request->deduction;
             $loan_toal=$payable-$request->paid;
-         
+
             $paid=$salary->salary -$salary->paid;
             $employee->loan=   $employee->loan+$paid-$loan_toal;
             $employee->save();
@@ -174,16 +182,16 @@ class SalaryPaymentController extends Controller
             }
             $salary->paid = $request->paid;
             $created_at  = $dates->format("Y-m-d");
-            
+
             $salary->created_at = $dates->format("Y-m-d");
-            
+
             $salary->present=$request->present;
             $salary->absent=$request->absent;
             $salary->description=$request->description;
             $salary->deduction=$request->deduction;
             $salary->save();
             $income = TreasuryLog::withTrashed()->where(['table' => 'employee_salary', 'table_id' => $request->id])->first();
-       
+
             if ($income) {
                 $income->amount = $request->paid;
                 $income->save();
@@ -191,13 +199,13 @@ class SalaryPaymentController extends Controller
             if ($loan_amount!=null) {
                 $loan = TreasuryLog::withTrashed()->where(['table' => 'employee_loan', 'table_id' => $loan_amount->id])->first();
                 if ($loan) {
-    
+
                     $loan->amount =$loan_toal;
                     $loan->save();
                 }
-               
+
             }
-     
+
             DB::commit();
             return response()->json($salary, 202);
         } catch (\Throwable $th) {

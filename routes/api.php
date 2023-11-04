@@ -30,7 +30,11 @@ Route::group(['prefix' => 'v1'], function () {
         require __DIR__ . '/api/stock_routes.php';
         require __DIR__ . '/api/product_stock__transfer_routes.php';
         require __DIR__ . '/api/stock_to_stock_routes.php';
+        require __DIR__ . '/api/sell_routes.php';
+        require __DIR__ . '/api/customer_routes.php';
+        require __DIR__ . '/api/container_routes.php';
         Route::get("analytics", [DashboardController::class, "index"]);
         Route::get("reports", [DashboardController::class, "reports"]);
+        Route::get("get_report", [DashboardController::class, "getReports"]);
     });
 });
