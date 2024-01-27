@@ -46,8 +46,8 @@ class SellController extends Controller
             $results = collect($query->items());
             $total = $query->total();
             $results = $results->map(function ($result) {
-                $result->total_price = $result->items_sum_total ;
-                $result->remainder = $result->total_price - $result->payments_sum_amount;
+                $result->total_price = round($result->items_sum_total,2 );
+                $result->remainder = round($result->total_price - $result->payments_sum_amount,2);
                 return $result;
             });
             return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['sells' => $allTotal, 'trash' => $trashTotal]]);
@@ -111,9 +111,12 @@ class SellController extends Controller
                 $productStockAmount = ProductStock::where('id',$productId)->decrement('quantity',$sum);
             }
         }
+
         if ($request->paid_amount > 0) {
             $payment = SellPayment::create(['sell_id' => $sell->id, 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $request->date, 'customer_id' => $request->customer_id['id']]);
-            TreasuryLog::create(['table' => "sell", 'table_id' => $payment->id, 'type' => 'deposit', 'name' => ' بابت فروش محصول   ', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+
+            TreasuryLog::create(['table' => "sell", 'table_id' => $payment->id, 'type' => 'deposit',  'name' => 'بابت پرداختی فروش'. ' ( بیل نمبر  ' . $sell->id .'   مشتری'. '   '.$request->customer_id['first_name'].  ' )', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+
         }
 
         DB::commit();
@@ -132,8 +135,8 @@ class SellController extends Controller
         try {
             $sell = new Sell();
             $sell = $sell->with('customer')->with(['payments' => fn ($q) => $q->withTrashed(), 'items' => fn ($q) => $q->withTrashed(),'items.product_stock.product' => fn ($q) => $q->withTrashed(),'items.product_stock.stock' => fn ($q) => $q->withTrashed()])->withTrashed()->withSum('payments', 'amount')->withSum('items', 'total')->withSum('items', 'cost')->find($id);
-            $sell->total_price = $sell->items_sum_total;
-            $sell->remainder  = $sell->total_price - $sell->payments_sum_amount;
+            $sell->total_price = round($sell->items_sum_total,2);
+            $sell->remainder  = round($sell->total_price - $sell->payments_sum_amount,2);
 
             return response()->json($sell);
         } catch (\Throwable $th) {
@@ -324,12 +327,6 @@ class SellController extends Controller
 
             );
 
-
-
-
-
-
-
             DB::beginTransaction();
             $sell = Sell::find($request->sell_id);
             $user_id = Auth::user()->id;
@@ -460,8 +457,9 @@ class SellController extends Controller
             $attributes['sell_id'] = $sell->id;
             $attributes['customer_id'] = $sell->customer_id;
             $payment =  SellPayment::create($attributes);
-            TreasuryLog::create(['table' => "sell_payment", 'table_id' => $payment->id, 'type' => 'deposit', 'name' => 'پرداختی بابت فروش محصول', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
 
+
+            TreasuryLog::create(['table' => "sell_payment", 'table_id' => $payment->id, 'type' => 'deposit', 'name' => 'بابت پرداختی فروش'. ' ( بیل نمبر  ' . $sell->id .'   مشتری'  .'    '. $request->customer_name .' )', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
 
             DB::commit();
             return response()->json($payment, 201);

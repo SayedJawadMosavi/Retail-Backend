@@ -177,7 +177,7 @@ class StockToStockTransferController extends Controller
 
 
                     if ($request->product['id'] == $product->sender_stock_product_id) {
-                        return $product->sender_stock_product_id;
+
                         $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
                         $sender_stock_product_id =  ProductStock::find($product->sender_stock_product_id);
 
@@ -220,7 +220,7 @@ class StockToStockTransferController extends Controller
             $product =  $product->update($attributes);
 
             DB::commit();
-            return response()->json($product, 201);
+            return response()->json($product, 202);
         } catch (\Exception $th) {
             DB::rollBack();
             return response()->json($th->getMessage(), 500);

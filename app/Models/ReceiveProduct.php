@@ -7,17 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class StockProductTransfer extends Model
+class ReceiveProduct extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['product_id','stock_id', 'quantity','description','stock_product_id', 'created_by'];
-
+    protected $fillable = ['product_id', 'quantity','description', 'purchase_item_id', 'created_at'];
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
-    }
-    public function stock(): BelongsTo
-    {
-        return $this->belongsTo(Stock::class);
     }
 }

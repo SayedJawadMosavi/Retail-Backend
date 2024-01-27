@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProductCategory;
+use App\Models\ExpenseIncomeCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ProductCategoryController extends Controller
+class ExpenseIncomeCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -14,7 +14,7 @@ class ProductCategoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = new ProductCategory();
+            $query = new ExpenseIncomeCategory();
             $searchCol = ['name', 'created_at'];
             $query = $this->search($query, $request, $searchCol);
             $trashTotal = clone $query;
@@ -29,7 +29,7 @@ class ProductCategoryController extends Controller
             $results = collect($query->items());
             $total = $query->total();
 
-            return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['products' => $allTotal, 'trash' => $trashTotal]]);
+            return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['categories' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
@@ -53,7 +53,7 @@ class ProductCategoryController extends Controller
         // return $request->all();
         try {
             DB::beginTransaction();
-            $category = new ProductCategory();
+            $category = new ExpenseIncomeCategory();
             // $attributes = $request->only($category->getFillable());
             // $attributes['status'] = 'false';
             $category->create([
@@ -68,10 +68,11 @@ class ProductCategoryController extends Controller
         }
     }
 
+
     /**
      * Display the specified resource.
      */
-    public function show(ProductCategory $productCategory)
+    public function show(ExpenseIncomeCategory $expenseIncomeCategory)
     {
         //
     }
@@ -79,7 +80,7 @@ class ProductCategoryController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ProductCategory $productCategory)
+    public function edit(ExpenseIncomeCategory $expenseIncomeCategory)
     {
         //
     }
@@ -92,7 +93,7 @@ class ProductCategoryController extends Controller
 
         try {
             DB::beginTransaction();
-            $category =  ProductCategory::find($request->id);
+            $category =  ExpenseIncomeCategory::find($request->id);
             // $attributes = $request->only($category->getFillable());
             // $attributes['status'] = 'false';
             $category->update([
@@ -116,7 +117,7 @@ class ProductCategoryController extends Controller
         try {
             DB::beginTransaction();
             $ids  = explode(",", $id);
-            $result = ProductCategory::whereIn("id", $ids)->delete();
+            $result = ExpenseIncomeCategory::whereIn("id", $ids)->delete();
             DB::commit();
             return response()->json($result, 206);
         } catch (\Exception $th) {
@@ -130,7 +131,7 @@ class ProductCategoryController extends Controller
     {
         try {
             $ids = explode(",", $id);
-            ProductCategory::whereIn('id', $ids)->withTrashed()->restore();
+            ExpenseIncomeCategory::whereIn('id', $ids)->withTrashed()->restore();
             return response()->json(true, 203);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -142,7 +143,7 @@ class ProductCategoryController extends Controller
         try {
             DB::beginTransaction();
             $ids = explode(",", $id);
-            ProductCategory::whereIn('id', $ids)->withTrashed()->forceDelete();
+            ExpenseIncomeCategory::whereIn('id', $ids)->withTrashed()->forceDelete();
             DB::commit();
             return response()->json(true, 203);
         } catch (\Throwable $th) {
@@ -170,11 +171,20 @@ class ProductCategoryController extends Controller
         try {
             $status = $request->status;
             if ($status == false) {
-                $product = ProductCategory::where('id', $request->id)->update(['status'  => true]);
+                $product = ExpenseIncomeCategory::where('id', $request->id)->update(['status'  => true]);
             } else {
-                $product = ProductCategory::where('id', $request->id)->update(['status'  => false]);
+                $product = ExpenseIncomeCategory::where('id', $request->id)->update(['status'  => false]);
             }
             return response()->json($product, 202);
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+    public function getCategory(Request $request)
+    {
+        try {
+            $category = ExpenseIncomeCategory::select(['id', 'name'])->where('status', 1)->get();
+            return response()->json($category);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

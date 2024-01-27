@@ -13,12 +13,15 @@ return new class extends Migration
     {
         Schema::create('purchase_details', function (Blueprint $table) {
             $table->id();
-          
+
             $table->text('description')->nullable();
             $table->double('yen_cost');
             $table->double('quantity');
             $table->double('total');
+            $table->double('received')->nullable();
             $table->double('expense');
+            $table->double('carton_amount');
+            $table->double('carton');
             $table->string('rate');
             $table->foreignId('purchase_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('vendor_id')->constrained()->onDelete('cascade')->onUpdate('cascade');

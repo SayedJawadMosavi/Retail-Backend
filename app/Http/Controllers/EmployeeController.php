@@ -105,7 +105,7 @@ class EmployeeController extends Controller
     public function getEmployees(Request $request)
     {
         try {
-            $employee = Employee::select(['id', 'salary', 'first_name', 'last_name'])->latest()->get();
+            $employee = Employee::select(['id', 'salary', 'first_name', 'last_name','loan'])->latest()->get();
             return response()->json($employee);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -142,8 +142,11 @@ class EmployeeController extends Controller
             $ids = explode(",", $id);
             Employee::whereIn('id', $ids)->withTrashed()->restore();
             $salary_ids =  SalaryPayment::withTrashed()->whereIn('employee_id', $ids)->get()->pluck('id');
+            $loan_ids =  EmployeeLoan::withTrashed()->whereIn('employee_id', $ids)->get()->pluck('id');
             SalaryPayment::withTrashed()->whereIn("employee_id", $ids)->restore();
-            IncomingOutgoing::withTrashed()->where(['table' => 'salary'])->whereIn('table_id', $salary_ids)->restore();
+            EmployeeLoan::withTrashed()->whereIn("employee_id", $ids)->restore();
+            TreasuryLog::withTrashed()->where(['table' => 'employee_salary'])->whereIn('table_id', $salary_ids)->restore();
+            TreasuryLog::withTrashed()->where(['table' => 'employee_loan'])->whereIn('table_id', $loan_ids)->restore();
             return response()->json(true, 203);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
@@ -157,7 +160,9 @@ class EmployeeController extends Controller
             $ids = explode(",", $id);
             $salary_ids =  SalaryPayment::withTrashed()->whereIn('employee_id', $ids)->get()->pluck('id');
             Employee::whereIn('id', $ids)->withTrashed()->forceDelete();
-            IncomingOutgoing::withTrashed()->where(['table' => 'salary'])->whereIn('table_id', $salary_ids)->forceDelete();
+            SalaryPayment::withTrashed()->whereIn("employee_id", $ids)->forceDelete();
+            EmployeeLoan::withTrashed()->whereIn("employee_id", $ids)->forceDelete();
+            // TreasuryLog::withTrashed()->where(['table' => 'salary'])->whereIn('table_id', $salary_ids)->forceDelete();
             DB::commit();
             return response()->json(true, 203);
         } catch (\Throwable $th) {
@@ -177,8 +182,11 @@ class EmployeeController extends Controller
             $ids  = explode(",", $id);
             $result = Employee::whereIn("id", $ids)->delete();
             $salary_ids =  SalaryPayment::whereIn('employee_id', $ids)->get()->pluck('id');
+            $loan_ids =  EmployeeLoan::whereIn('employee_id', $ids)->get()->pluck('id');
             SalaryPayment::whereIn("employee_id", $ids)->delete();
-            IncomingOutgoing::withTrashed()->where(['table' => 'salary'])->whereIn('table_id', $salary_ids)->delete();
+            EmployeeLoan::whereIn("employee_id", $ids)->delete();
+            TreasuryLog::withTrashed()->where(['table' => 'employee_salary'])->whereIn('table_id', $salary_ids)->delete();
+            TreasuryLog::withTrashed()->where(['table' => 'employee_loan'])->whereIn('table_id', $loan_ids)->delete();
             DB::commit();
             return response()->json($result, 206);
         } catch (\Exception $th) {
@@ -227,11 +235,12 @@ class EmployeeController extends Controller
             if ($attributes['type'] == "deposit") {
                 $employee->loan = $employee->loan - $request->amount;
                 $employee->save();
-                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'deposit', 'name' => 'قرضه کارمند ', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $attributes['created_at']]);
+                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'deposit', 'name' => '(  گرفتن قرضه کارمند'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $attributes['created_at']]);
             } else if ($attributes['type'] == "withdraw") {
+
                 $employee->loan = $employee->loan + $request->amount;
                 $employee->save();
-                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => 'قرضه کارمند', 'amount' => $request->amount, 'created_by' => $user_id, 'create_at' => $attributes['created_at']]);
+                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => '(  گرفتن قرضه کارمند'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'create_at' => $attributes['created_at']]);
             }
             DB::commit();
             return response()->json($item, 201);
@@ -317,20 +326,13 @@ class EmployeeController extends Controller
             [
                 'first_name' => 'required',
                 'last_name' => 'required',
-                'phone_number' => 'required',
-                'current_address' => 'required',
-                'permenent_address' => 'required',
+
                 'employment_start_date' => 'required:date',
                 'job_title' => 'required',
             ],
             [
                 'first_name.required' => "نام ضروری می باشد",
                 'last_name.required' => "تخلص ضروری می باشد",
-                'email.required' => "ایمیل ضروری می باشد",
-                'phone_number.required' => "شماره تیلفون ضروری می باشد",
-                'phone_number.unique' => "شماره تیلفون ذیل موجود می باشد",
-                'current_address.required' => "آدرس فعلی ضروری می باشد",
-                'permenent_address.required' => "آدرس دایمی ضروری می باشد",
                 'employee_start_date.required' => "شروع کارمند ضروری می باشد",
                 'job_title.required' => "عنوان وظیفه ضروری می باشد",
             ]

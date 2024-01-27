@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->text('profile')->nullable();
             $table->string('email')->nullable();
-            $table->string('phone_number');
+            $table->string('phone_number')->nullable();
             $table->string('current_address')->nullable();
             $table->string('permenent_address')->nullable();
             $table->date('employment_start_date');

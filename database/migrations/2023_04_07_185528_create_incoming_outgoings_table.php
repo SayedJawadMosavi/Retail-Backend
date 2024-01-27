@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('table_id')->nullable();
             $table->double('amount')->unsigned();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->onUpdate('cascade');
+            $table->unsignedBigInteger('category_id');
             $table->softDeletes();
 
             $table->timestamps();

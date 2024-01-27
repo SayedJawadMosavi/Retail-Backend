@@ -211,16 +211,13 @@ class VendorController extends Controller
             [
                 'organization_name' => 'required',
                 'name' => 'required',
-                'phone_number' => 'required',
-                'address' => 'required',
+
 
             ],
             [
                 'organization_name.required' => "اسم کمپنی ضروری میباشد",
                 'name.required' => "اسم ضروری میباشد",
-                'address.required' => "آدرس ضروری میباشد",
-                'phone_number.required' => "شماره تماس اجباری میباشد",
-                'phone_number.unique' => "شماره تیلفون ذیل موجود می باشد",
+
 
             ]
 

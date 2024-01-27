@@ -100,7 +100,9 @@ class PurchaseController extends Controller
             $item['quantity'] = $item['quantity'];
             $item['rate'] = $item['rate'];
             $item['expense'] = $item['expense'];
-            $item['total'] = ((($item['cost']/ $item['rate']) + $item['expense']) * $item['quantity']);
+            $item['carton_amount'] = $item['carton_amount'];
+            $item['carton'] = $item['carton'];
+            $item['total'] = round(((($item['cost']/ $item['rate']) + $item['expense']) * $item['carton']),2);
             PurchaseDetail::create($item);
         }
 
@@ -114,7 +116,7 @@ class PurchaseController extends Controller
 
         if ($request->paid_amount > 0) {
             $payment = PurchasePayment::create(['purchase_id' => $purchase->id, 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $request->date, 'vendor_id' => $request->vendor_id['id']]);
-            TreasuryLog::create(['table' => "purchase", 'table_id' => $payment->id, 'type' => 'withdraw', 'name' => ' بابت خرید   ', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+            TreasuryLog::create(['table' => "purchase", 'table_id' => $payment->id, 'type' => 'withdraw',  'name' => 'بابت خرید'. ' ( بیل نمبر  ' . $purchase->id .'  معامله دار'. '   '.$request->vendor_id['name'].  '  '.'کانتینر'. $request->container_id['name']. ')', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
         }
 
         DB::commit();
@@ -133,8 +135,8 @@ class PurchaseController extends Controller
         try {
             $purchase = new Purchase();
             $purchase = $purchase->with('vendor','container')->with(['payments' => fn ($q) => $q->withTrashed(), 'items' => fn ($q) => $q->withTrashed(), 'items.product' => fn ($q) => $q->withTrashed(), 'extraExpense' => fn ($q) => $q->withTrashed()])->withTrashed()->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total')->withSum('items', 'yen_cost')->find($id);
-            $purchase->total_price = $purchase->items_sum_total+$purchase->extra_expense_sum_price;
-            $purchase->remainder  = $purchase->total_price - $purchase->payments_sum_amount;
+            $purchase->total_price = round($purchase->items_sum_total+$purchase->extra_expense_sum_price,2);
+            $purchase->remainder  = round($purchase->total_price - $purchase->payments_sum_amount,2);
 
             return response()->json($purchase);
         } catch (\Throwable $th) {
@@ -245,6 +247,7 @@ class PurchaseController extends Controller
                 TreasuryLog::withTrashed()->where(['table' => 'purchase'])->whereIn('table_id', $ids)->delete();
             }
             if ($type == 'items')
+
                 $model = new PurchaseDetail();
             if ($type == 'expenses')
                 $model = new PurchaseExtraExpense();
@@ -405,6 +408,8 @@ class PurchaseController extends Controller
                     'product_id' => 'required',
                     'cost' => 'required|numeric|min:1',
                     'quantity' => 'required',
+                    'carton_amount' => 'required',
+                    'carton' => 'required',
                     'expense' => 'required|numeric|min:0.01',
                 ],
                 [
@@ -416,6 +421,8 @@ class PurchaseController extends Controller
                     "created_at.before_or_equal" => "تاریخ ثبت بزرگتر از تاریخ فعلی شده نمیتواند!",
                     'product_id.required' => 'نام محصول ضروری میباشد',
                     'quantity.required' => 'مقدار ضروری میباشد',
+                    'carton_amount.required' => 'مقدار به کارتن ضروری میباشد',
+                    'carton.required' => 'تعداد به کارتن ضروری میباشد',
                     'cost.required' => 'قیمت ضروری میباشد ',
                     'cost.numeric' => 'قیمت باید عدد باشد',
                     'cost.min' => 'قیمت کمتر از یک شده نیتواند',
@@ -439,6 +446,9 @@ class PurchaseController extends Controller
             $attributes['purchase_id'] = $purchase->id;
             $attributes['product_id'] = $request->product_id['id'];
             $attributes['vendor_id'] = $purchase->vendor_id;
+            $attributes['vendor_id'] = $purchase->vendor_id;
+            $attributes['carton_amount'] = $request->carton_amount;
+            $attributes['carton'] = $request->carton;
 
             $attributes['rate'] = $request->rate;
             $attributes['yen_cost'] = $request->cost;
@@ -466,7 +476,7 @@ class PurchaseController extends Controller
                     'product_id' => 'required',
                     'cost' => 'required|numeric|min:1',
                     'quantity' => 'required',
-                    'expense' => 'required|numeric|min:0.01',
+                    'expense' => 'required|numeric',
                 ],
                 [
 
@@ -553,7 +563,7 @@ class PurchaseController extends Controller
             $attributes['purchase_id'] = $purchase->id;
             $attributes['vendor_id'] = $purchase->vendor_id;
             $payment =  PurchasePayment::create($attributes);
-            TreasuryLog::create(['table' => "purchase_payment", 'table_id' => $payment->id, 'type' => 'withdraw', 'name' => 'پرداختی بابت خرید محصول', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+            TreasuryLog::create(['table' => "purchase_payment", 'table_id' => $payment->id, 'type' => 'withdraw', 'name' => 'بابت پرداختی محصول'. ' ( بیل نمبر  ' . $purchase->id .'  معامله دار'  .'    '. $request->vendor_name .'     ' .  'کانتینر'   .'   ' . $request->container_name. ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
 
 
             DB::commit();
@@ -594,6 +604,7 @@ class PurchaseController extends Controller
                 return response()->json('نمیتواند بزرگتر از مجموع باشد', 422);
             }
             $payment->amount = $request->amount;
+            $payment->description = $request->description;
             $payment->save();
             $income = TreasuryLog::withTrashed()->where(['table' => 'purchase_payment', 'table_id' => $request->id])->first();
             if ($income) {
@@ -648,7 +659,7 @@ class PurchaseController extends Controller
             $attributes['purchase_id'] = $purchase->id;
             $attributes['vendor_id'] = $purchase->vendor_id;
             $expense =  PurchaseExtraExpense::create($attributes);
-
+            TreasuryLog::create(['table' => "purchase_extra_expense", 'table_id' => $expense->id, 'type' => 'withdraw', 'name' => 'بابت مصارف اضافی ازخرید' . $request->anme   . ' ( بیل نمبر  ' . $purchase->id .'  معامله دار'  .'    '. $request->vendor_name .'     ' .  'کانتینر'   .'   ' . $request->container_name. ')', 'amount' => $request->price, 'created_by' => $user_id, 'created_at' => $expense->created_at,]);
             DB::commit();
             return response()->json($expense, 201);
         } catch (\Exception $th) {

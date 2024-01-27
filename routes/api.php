@@ -33,6 +33,8 @@ Route::group(['prefix' => 'v1'], function () {
         require __DIR__ . '/api/sell_routes.php';
         require __DIR__ . '/api/customer_routes.php';
         require __DIR__ . '/api/container_routes.php';
+        require __DIR__ . '/api/receive_product_routes.php';
+        require __DIR__ . '/api/expense_income_category_routes.php';
         Route::get("analytics", [DashboardController::class, "index"]);
         Route::get("reports", [DashboardController::class, "reports"]);
         Route::get("get_report", [DashboardController::class, "getReports"]);

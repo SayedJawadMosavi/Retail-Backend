@@ -34,7 +34,7 @@ class IncomingOutgoingController extends Controller
 
             $totalIncomes = clone $query;
             $totalIncomes = $totalIncomes->whereType('incoming')->sum('amount');
-
+            $query=$query->with('category');
             $totalOutGoing = clone $query;
             $totalOutGoing = $totalOutGoing->whereType('outgoing')->sum('amount');
 
@@ -91,12 +91,13 @@ class IncomingOutgoingController extends Controller
             $attributes = $request->only($incoming->getFillable());
 
             $attributes['created_by'] = $user_id;
+            $attributes['category_id'] = $request->category_id['id'];
             $incoming =  $incoming->create($attributes);
             if ($incoming) {
                 if ($request->type=="incoming") {
-                    TreasuryLog::create(['table' => "incoming", 'table_id' => $incoming->id,'type' =>'deposit', 'name' => 'آمد', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+                    TreasuryLog::create(['table' => "incoming", 'table_id' => $incoming->id,'type' =>'deposit', 'name' => '(   آمد بابت'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
                 }else{
-                    TreasuryLog::create(['table' => "outgoing", 'table_id' => $incoming->id,'type' =>'withdraw', 'name' => 'رفت', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+                    TreasuryLog::create(['table' => "outgoing", 'table_id' => $incoming->id,'type' =>'withdraw', 'name' => '(   رفت بابت'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
 
                 }
 
@@ -128,6 +129,12 @@ class IncomingOutgoingController extends Controller
         try {
             $incomingOutgoing = IncomingOutgoing::find($request->id);
             $attributes = $request->only($incomingOutgoing->getFillable());
+            if (!isset($request->category_id['id'])) {
+                $attributes['category_id']=$request->category['id'];
+            }else {
+                $attributes['category_id']=$request->category_id['id'];
+
+            }
             $incomingOutgoing->update($attributes);
             if ($request->type=="incoming") {
 

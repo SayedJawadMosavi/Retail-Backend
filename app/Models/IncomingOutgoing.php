@@ -13,10 +13,14 @@ class IncomingOutgoing extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'type', 'amount', 'created_by', 'created_at', 'table', 'table_id'];
+    protected $fillable = ['name', 'type', 'amount', 'created_by', 'created_at', 'table', 'table_id','category_id'];
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ExpenseIncomeCategory::class);
     }
 
     use HasFactory;

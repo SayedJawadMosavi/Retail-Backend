@@ -205,8 +205,7 @@ class CustomerController extends Controller
             [
                 'first_name' => 'required',
                 'last_name' => 'required',
-                'phone_number' => 'required',
-                'tazkira_number' => 'required'
+
 
             ],
             [
@@ -214,9 +213,7 @@ class CustomerController extends Controller
                 'last_name.required' => "The last name is required",
                 'phone_number.unique' => "phone number is exist",
                 'tazkira_number.unique' => 'this tazkira_number is used before!',
-                'phone_number.required' => "Phone number is required",
-                'phone_number.unique' => "phone number should be unique",
-                'tazkira_number.required' => "site id  is required",
+
 
             ]
 

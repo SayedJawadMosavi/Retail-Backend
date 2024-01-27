@@ -323,7 +323,7 @@ class DashboardController extends Controller
                 $date1 = new DateTime($request->end_date);
                 $endDate = $date1->format('Y-m-d');
 
-                $query =     $query->where('type', 'income')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                $query =     $query->where('type', 'incoming')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
 
                 $trashTotal = clone $query;
                 $trashTotal = $trashTotal->onlyTrashed()->count();
@@ -352,7 +352,7 @@ class DashboardController extends Controller
                 $startDate = $date1->format('Y-m-d');
                 $date1 = new DateTime($request->end_date);
                 $endDate = $date1->format('Y-m-d');
-                $query =     $query->where('type', 'expense')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                $query =     $query->where('type', 'outgoing')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
                 $trashTotal = clone $query;
                 $trashTotal = $trashTotal->onlyTrashed()->count();
                 $allTotal = clone $query;

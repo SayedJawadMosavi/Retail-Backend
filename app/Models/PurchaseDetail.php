@@ -12,7 +12,7 @@ class PurchaseDetail extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['yen_cost', 'quantity', 'description','total','currency','expense','rate', 'created_at', 'purchase_id', 'product_id','vendor_id'];
+    protected $fillable = ['yen_cost', 'quantity', 'description','total','currency','carton_amount','carton','expense','rate', 'created_at', 'purchase_id', 'product_id','vendor_id'];
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

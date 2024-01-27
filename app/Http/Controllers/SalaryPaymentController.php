@@ -34,7 +34,7 @@ class SalaryPaymentController extends Controller
             $query = new SalaryPayment();
             $searchCol = ['employee_id', 'created_at', 'employee.first_name', 'employee.last_name', "paid", "salary"];
             $query = $this->search($query, $request, $searchCol);
-            $query = $query->with('employee:id,first_name,last_name,salary,job_title');
+            $query = $query->with('employee:id,first_name,last_name,salary,job_title,loan');
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
             $allTotal = clone $query;
@@ -113,7 +113,8 @@ class SalaryPaymentController extends Controller
                        ]);
 
 
-                       TreasuryLog::create(['table' => "employee_loan",'client_id' =>$request->employee['id'], 'table_id' => $employee_loan->id, 'type' => 'deposit', 'name' => 'آمد بابت  باقی از معاش  ', 'amount' => $diff, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+
+                       TreasuryLog::create(['table' => "employee_loan", 'table_id' => $employee_loan->id, 'type' => 'deposit',  'name' => ' آمد بابت  باقی از معاش '. ' ( کارمند'. '   '.$request->employee['first_name'].   ')', 'amount' => $diff, 'created_by' => $user_id]);
 
                     }
 
@@ -127,7 +128,7 @@ class SalaryPaymentController extends Controller
                         'created_at'      =>$dates->format("Y-m-d")
                        ]);
 
-                    TreasuryLog::create(['table' => "employee_loan",'client_id' =>$request->employee['id'], 'table_id' => $employee_loan->id, 'type' => 'deposit', 'name' => 'قرضه کارمند ', 'amount' => $request->deduction, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+                    TreasuryLog::create(['table' => "employee_loan",'client_id' =>$request->employee['id'], 'table_id' => $employee_loan->id, 'type' => 'deposit', 'name' => '(  قرضه کارمند'. '   '.$request->employee['first_name'].   ')', 'amount' => $request->deduction, 'created_by' => $user_id]);
 
                 }
 
@@ -135,7 +136,7 @@ class SalaryPaymentController extends Controller
 
             $name = $employee->first_name . ' ' . $employee->last_name;
 
-            TreasuryLog::create(['table' => "employee_salary",'client_id' =>$request->employee_id, 'table_id' => $salary->id, 'type' => 'withdraw', 'name' => 'پرداخت معاش ', 'amount' => $request->paid, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+            TreasuryLog::create(['table' => "employee_salary",'client_id' =>$request->employee_id, 'table_id' => $salary->id, 'type' => 'withdraw', 'name' => 'پرداخت معاش '. ' (  کارمند  ' . $name .')', 'amount' => $request->paid, 'created_by' => $user_id]);
 
             DB::commit();
             return response()->json(true, 201);

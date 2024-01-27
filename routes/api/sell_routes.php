@@ -1,15 +1,15 @@
 <?php
 
-use App\Http\Controllers\sellController;
+use App\Http\Controllers\SellController;
 use Illuminate\Support\Facades\Route;
 
-Route::apiResource('sell', sellController::class);
-Route::post('/sell-item', [sellController::class, 'addItem']);
-Route::put('/sell-item', [sellController::class, 'updateItem']);
-Route::post('/sell-payment', [sellController::class, 'addPayment']);
-Route::put('/sell-payment', [sellController::class, 'updatePayment']);
-Route::post('/restore/{type}/{id}', [sellController::class, 'restore']);
-Route::delete('/delete/{type}/{id}', [sellController::class, 'destroy']);
-Route::delete('/force-delete/{type}/{id}', [sellController::class, 'forceDelete']);
-Route::get('customer-list', [sellController::class, 'getCustomer']);
-Route::get('product-stock-list', [sellController::class, 'getProductStock']);
+Route::apiResource('sell', SellController::class);
+Route::post('/sell-item', [SellController::class, 'addItem']);
+Route::put('/sell-item', [SellController::class, 'updateItem']);
+Route::post('/sell-payment', [SellController::class, 'addPayment']);
+Route::put('/sell-payment', [SellController::class, 'updatePayment']);
+Route::post('/restore_sell/{type}/{id}', [SellController::class, 'restore']);
+Route::delete('/delete_sell/{type}/{id}', [SellController::class, 'destroy']);
+Route::delete('/force-delete_sell/{type}/{id}', [SellController::class, 'forceDelete']);
+Route::get('customer-list', [SellController::class, 'getCustomer']);
+Route::get('product-stock-list', [SellController::class, 'getProductStock']);

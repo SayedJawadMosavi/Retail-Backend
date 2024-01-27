@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('treasury_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->text('name');
             $table->string('type')->nullable();
             $table->string('table')->nullable();
             $table->string('table_id')->nullable();

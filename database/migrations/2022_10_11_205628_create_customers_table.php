@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('profile')->nullable();
             $table->string('email')->nullable();
-            $table->string('phone_number');
-            $table->string('tazkira_number')->unique();
+            $table->string('phone_number')->nullable();
+            $table->string('tazkira_number')->unique()->nullable();
             $table->text('address')->nullable();
             $table->text('description')->nullable();
             $table->boolean('status')->default(1);

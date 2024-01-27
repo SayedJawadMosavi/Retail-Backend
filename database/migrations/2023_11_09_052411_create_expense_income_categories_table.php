@@ -11,15 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vendors', function (Blueprint $table) {
+        Schema::create('expense_income_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('organization_name');
-            $table->string('address')->nullable();
-            $table->string('email')->nullable();
-            $table->string('phone_number')->nullable();
-            $table->text('description')->nullable();
-            $table->boolean('status')->default(false);
+            $table->boolean('status')->default(true);
             $table->softDeletes();
             $table->timestamps();
         });
@@ -30,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('vendors');
+        Schema::dropIfExists('expense_income_categories');
     }
 };

@@ -22,6 +22,7 @@ class Employee extends Model
         'employment_end_date',
         'job_title',
         'salary',
+        'loan',
         'employee_id_number',
     ];
 
