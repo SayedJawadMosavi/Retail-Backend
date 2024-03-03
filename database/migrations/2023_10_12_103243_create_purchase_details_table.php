@@ -20,8 +20,11 @@ return new class extends Migration
             $table->double('total');
             $table->double('received')->nullable();
             $table->double('expense');
+            $table->double('per_carton_cost');
+            $table->double('sell_price');
             $table->double('carton_amount');
             $table->double('carton');
+            $table->double('receive_carton')->nullable();
             $table->string('rate');
             $table->foreignId('purchase_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('vendor_id')->constrained()->onDelete('cascade')->onUpdate('cascade');

@@ -19,7 +19,10 @@ class Customer extends Model
         'phone_number',
         'address',
         'status',
-        'description'
+        'type',
+        'description',
+        'total_amount',
+        'total_paid',
 
     ];
     public function payments(): HasMany
@@ -31,5 +34,13 @@ class Customer extends Model
         return $this->hasMany(SellItem::class, 'customer_id');
     }
 
+    public function sell()
+    {
+        return $this->hasMany(Sell::class, 'customer_id');
+    }
+    public function deposit_withdraw()
+    {
+        return $this->hasMany(DepositWithdraw::class, 'customer_id');
+    }
 
 }

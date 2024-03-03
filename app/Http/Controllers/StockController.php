@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ProductStock;
 use App\Models\Stock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class StockController extends Controller
     {
         try {
             $query = new Stock();
-            $searchCol = ['name', 'created_at'];
+            $searchCol = ['id','name', 'created_at'];
             $query = $this->search($query, $request, $searchCol);
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
@@ -42,7 +43,40 @@ class StockController extends Controller
             return response()->json($th->getMessage(), 500);
         }
     }
+    public function getStockData(Request $request,$id)
+    {
 
+        try {
+
+            $query = new ProductStock();
+            $searchCol = ['quantity','carton_quantity', 'description', 'created_at','product.product_name','stock.name'];
+            $query = $this->search($query, $request, $searchCol);
+            $query=$query->with('product','stock');
+
+           $trashTotal = clone $query;
+
+           $trashTotal = $trashTotal->onlyTrashed()->count();
+
+
+            $allTotal = clone $query;
+            $allTotal = $allTotal->count();
+            if ($request->tab == 'trash') {
+                $query = $query->onlyTrashed();
+            }
+            $query = $query->where('stock_id',$id)->latest()->paginate($request->itemPerPage);
+            $results = collect($query->items());
+            $total = $query->total();
+            $result = [
+                "data" => $results,
+                "total" => $total,
+                "extraTotal" => ['product_stocks_transfer' => $allTotal, 'trash' => $trashTotal],
+
+            ];
+            return response()->json($result);
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
     /**
      * Show the form for creating a new resource.
      */
@@ -180,23 +214,24 @@ class StockController extends Controller
                 'name' => 'required',
             ],
             [
-                'name.required' => "اسم گدام ضروری میباشد",
+                'name.required' => "د ګدام نوم ضروری ده",
 
             ]
 
         );
     }
 
-    public function changeStatus(Request $request)
+    public function changeStatus($id,$value)
     {
         try {
-            $status = $request->status;
-            if ($status == false) {
-                $product = Stock::where('id', $request->id)->update(['status'  => true]);
-            } else {
-                $product = Stock::where('id', $request->id)->update(['status'  => false]);
+
+            if ($id==1) {
+                $stock=Stock::where('id',$value)->update(['status'  =>0]);
+            }else if ($id==0) {
+                $stock=Stock::where('id',$value)->update(['status'  =>1]);
+
             }
-            return response()->json($product, 202);
+            return response()->json($stock, 202);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

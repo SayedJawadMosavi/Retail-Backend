@@ -9,6 +9,7 @@ Route::delete('force-delete-product/{id}', [ProductController::class, 'forceDele
 
 Route::get('category-list', [ProductController::class, 'getCategory']);
 Route::post('product-status/{value}/{id}', [ProductController::class, 'changeStatus']);
+Route::get('get-product-list/{id}', [ProductController::class, 'getProduct']);
 
 
 

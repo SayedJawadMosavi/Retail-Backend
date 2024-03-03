@@ -158,23 +158,26 @@ class ProductCategoryController extends Controller
                 'name' => 'required',
             ],
             [
-                'name.required' => "اسم کتگوری ضروری میباشد",
+                'name.required' => "کتګوری نوم ضروری ده",
 
             ]
 
         );
     }
 
-    public function changeStatus(Request $request)
+    public function changeStatus($id,$value)
     {
+
+
         try {
-            $status = $request->status;
-            if ($status == false) {
-                $product = ProductCategory::where('id', $request->id)->update(['status'  => true]);
-            } else {
-                $product = ProductCategory::where('id', $request->id)->update(['status'  => false]);
+
+            if ($id==1) {
+                $category=ProductCategory::where('id',$value)->update(['status'  =>0]);
+            }else if ($id==0) {
+                $category=ProductCategory::where('id',$value)->update(['status'  =>1]);
+
             }
-            return response()->json($product, 202);
+            return response()->json($category, 202);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

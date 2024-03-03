@@ -18,6 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('sender_stock_product_id');
             $table->unsignedBigInteger('receiver_stock_product_id');
             $table->double('quantity');
+            $table->double('carton_amount');
+            $table->double('carton_quantity');
             $table->text('description')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->onUpdate('cascade');
             $table->softDeletes();

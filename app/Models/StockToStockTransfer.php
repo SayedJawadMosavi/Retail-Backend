@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class StockToStockTransfer extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['sender_stock_id','receiver_stock_id', 'quantity','description','sender_stock_product_id','receiver_stock_product_id', 'created_by'];
+    protected $fillable = ['sender_stock_id','receiver_stock_id', 'quantity','description','sender_stock_product_id','receiver_stock_product_id','carton_amount','carton_quantity', 'created_by'];
     public function product_stock(): BelongsTo
     {
         return $this->belongsTo(ProductStock::class,'sender_stock_product_id');

@@ -147,22 +147,24 @@ class ContainerController extends Controller
                 'name' => 'required',
             ],
             [
-                'name.required' => "اسم کانتینر ضروری میباشد",
+                'name.required' => "د کانتینر نوم ضروری ده",
 
             ]
 
         );
     }
-    public function changeStatus(Request $request)
+    public function changeStatus($id,$value)
     {
         try {
-            $status = $request->status;
-            if ($status == false) {
-                $product = Container::where('id', $request->id)->update(['status'  => true]);
-            } else {
-                $product = Container::where('id', $request->id)->update(['status'  => false]);
+
+
+            if ($id==1) {
+                $container=Container::where('id',$value)->update(['status'  =>0]);
+            }else if ($id==0) {
+                $container=Container::where('id',$value)->update(['status'  =>1]);
+
             }
-            return response()->json($product, 202);
+            return response()->json($container, 202);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

@@ -22,6 +22,5 @@ class IncomingOutgoing extends Model
     {
         return $this->belongsTo(ExpenseIncomeCategory::class);
     }
-
     use HasFactory;
 }

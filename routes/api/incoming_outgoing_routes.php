@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\ExpenseIncomeCategoryController;
 use App\Http\Controllers\IncomingOutgoingController;
+use App\Http\Controllers\ExpenseIncomeCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::apiResource('/income-outgoing', IncomingOutgoingController::class);

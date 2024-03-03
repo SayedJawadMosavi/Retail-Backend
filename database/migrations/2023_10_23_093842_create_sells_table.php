@@ -16,6 +16,10 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->text('description')->nullable();
             $table->date('sell_date');
+            $table->double('total_amount')->default(0);
+            $table->double('total_paid')->default(0);
+            $table->string('walkin_name')->nullable();
+
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->onUpdate('cascade');
             $table->softDeletes();
 

@@ -209,14 +209,14 @@ class EmployeeController extends Controller
 
                 ],
                 [
-                    'employee_id.required' => 'employee id is required!',
-                    "created_at.required" => "date is required",
-                    "created_at.date" => "date is not correct",
-                    "created_at.before_or_equal" => "register date can not be bigger than now!",
-                    'type.required' => 'type is required',
-                    'amount.required' => 'amount is required ',
-                    'amount.numeric' => 'amount must be numeric',
-                    'amount.min' => 'amount can not be less than one',
+                    'employee_id.required' => 'د کارمند آی دي ضروری ده',
+                    "created_at.required" => "تاریخ ضروری ده",
+                    "created_at.date" => "تاریخ غلط دی",
+                    "created_at.before_or_equal" => "د ثبت تاریخ د نه ورڅی تاریخ نه لوی نشی کیدلای",
+                    'type.required' => 'د نوعیت ضروری ده',
+                    'amount.required' => ' د پیسو اندازه ضروری ده',
+                    'amount.numeric' => 'د پیسو اندازه باید عدد وی',
+                    'amount.min' => 'د پیسو اندازه د یوی کم نشی کیدلای',
 
                 ],
 
@@ -235,12 +235,12 @@ class EmployeeController extends Controller
             if ($attributes['type'] == "deposit") {
                 $employee->loan = $employee->loan - $request->amount;
                 $employee->save();
-                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'deposit', 'name' => '(  گرفتن قرضه کارمند'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $attributes['created_at']]);
+                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'deposit', 'name' => '( د کارمند پور'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $attributes['created_at']]);
             } else if ($attributes['type'] == "withdraw") {
 
                 $employee->loan = $employee->loan + $request->amount;
                 $employee->save();
-                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => '(  گرفتن قرضه کارمند'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'create_at' => $attributes['created_at']]);
+                TreasuryLog::create(['table' => "loan", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => '( د کارمند پور'. '   '.$request->employee_name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'create_at' => $attributes['created_at']]);
             }
             DB::commit();
             return response()->json($item, 201);
@@ -263,14 +263,14 @@ class EmployeeController extends Controller
                     'type' => 'required',
                 ],
                 [
-                    'employee_id.required' => 'آی دی کارمند ضروری میباشد',
-                    "created_at.required" => "تاریخ ضروری میباشد",
-                    "created_at.date" => "تاریخ درست نمی باشد",
-                    "created_at.before_or_equal" => "تاریخ ثبت بزرگتر از امروز شده نمی تواند",
-                    'type.required' => 'نوعیت ضروری میباشد',
-                    'amount.required' => 'مقدار ضروری میباشد ',
-                    'amount.numeric' => 'مقدار باید عدد باشد',
-                    'amount.min' => 'مقدار کمتر از یک شده نمی تواند',
+                    'employee_id.required' => 'د کارمند آی دي ضروری ده',
+                    "created_at.required" => "تاریخ ضروری ده",
+                    "created_at.date" => "تاریخ غلط دی",
+                    "created_at.before_or_equal" => "د ثبت تاریخ د نه ورڅی تاریخ نه لوی نشی کیدلای",
+                    'type.required' => 'نوعیت ضروری ده',
+                    'amount.required' => ' د پیسو اندازه ضروری ده',
+                    'amount.numeric' => 'د پیسو اندازه باید عدد وی',
+                    'amount.min' => 'د پیسو اندازه د یوی کم نشی کیدلای',
 
                 ]
 
@@ -280,14 +280,7 @@ class EmployeeController extends Controller
             $loan = EmployeeLoan::find($request->id);
             $employee              = Employee::find($loan->employee_id);
             $loan->created_at = $request->created_at;
-            if ($request->type == "withdraw") {
 
-                $employee->loan =   $employee->loan - $loan->amount + $request->amount;
-                $employee->save();
-            } else if ($request->type == "deposit") {
-                $employee->loan =   $employee->loan + $loan->amount - $request->amount;
-                $employee->save();
-            }
             if ($request->type != $loan->type) {
                 if ($request->type == "withdraw") {
                     $employee->loan =   $employee->loan + $loan->amount;
@@ -303,15 +296,30 @@ class EmployeeController extends Controller
                     $employee->loan = $employee->loan + $request->amount;
                     $employee->save();
                 }
+            }else{
+                if ($request->type == "withdraw") {
+
+                    $employee->loan =   $employee->loan - $loan->amount + $request->amount;
+                    $employee->save();
+
+                } else if ($request->type == "deposit") {
+                    $employee->loan =   $employee->loan + $loan->amount - $request->amount;
+                    $employee->save();
+                }
+            }
+            $income = TreasuryLog::withTrashed()->where(['table' => 'loan', 'table_id' => $request->id])->first();
+            if ($income) {
+                $income->type = $request->type;
+                $income->save();
             }
             $loan->created_at = $request->created_at;
             $loan->amount = $request->amount;
             $loan->type = $request->type;
             $loan->save();
-            $income = TreasuryLog::withTrashed()->where(['table' => 'loan', 'table_id' => $request->id])->first();
-            if ($income) {
-                $income->amount = $request->amount;
-                $income->save();
+            $data = TreasuryLog::withTrashed()->where(['table' => 'loan', 'table_id' => $request->id])->first();
+            if ($data) {
+                $data->amount = $request->amount;
+                $data->save();
             }
             DB::commit();
             return response()->json($loan, 202);
@@ -325,16 +333,16 @@ class EmployeeController extends Controller
         return $request->validate(
             [
                 'first_name' => 'required',
-                'last_name' => 'required',
+
 
                 'employment_start_date' => 'required:date',
-                'job_title' => 'required',
+
             ],
             [
-                'first_name.required' => "نام ضروری می باشد",
-                'last_name.required' => "تخلص ضروری می باشد",
-                'employee_start_date.required' => "شروع کارمند ضروری می باشد",
-                'job_title.required' => "عنوان وظیفه ضروری می باشد",
+                'first_name.required' => "نوم ضروری ده",
+
+                'employee_start_date.required' => "د کارمند د کار پیل تاریخ ضروری ده",
+
             ]
 
         );

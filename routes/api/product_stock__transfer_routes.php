@@ -10,6 +10,10 @@ Route::delete('force-delete-product_stocks_transfer/{id}', [ProductStockControll
 Route::get('product-list', [ProductStockController::class, 'getProduct']);
 Route::get('stock-list', [ProductStockController::class, 'getStock']);
 Route::get('product_stocks', [ProductStockController::class, 'getStockProduct']);
+Route::get('get-product-alarm/{id}', [ProductStockController::class, 'getProductAlarmAmount']);
+Route::get('get-product-price/{id}', [ProductStockController::class, 'getProductPrice']);
+Route::get('get-product-alarm-amount/{id}/{product_id}', [ProductStockController::class, 'getProdutAmount']);
+
 
 
 

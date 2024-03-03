@@ -59,21 +59,29 @@ class ProductController extends Controller
     public function store(Request $request)
     {
 
-        $this->storeValidation($request);
-        try {
+
             DB::beginTransaction();
             $product = new Product();
-            $attributes = $request->only($product->getFillable());
-            $attributes['created_at'] = $request->date;
-            $attributes['category_id'] = $request->category_id['id'];
-            $attributes['status'] = 1;
-            $product =  $product->create($attributes);
-            DB::commit();
-            return response()->json($product, 201);
-        } catch (\Exception $th) {
-            DB::rollBack();
-            return response()->json($th->getMessage(), 500);
-        }
+            $productName = $request->product_name;
+
+            // Check if the product with the given name already exists
+            if ($product->where('product_name', $productName)->exists()) {
+                // Product with the same name already exists
+                return response()->json('ده محصول نوم موجود ده !', 406);
+            }else{
+                $this->storeValidation($request);
+                $attributes = $request->only($product->getFillable());
+
+                $attributes['created_at'] = $request->date;
+                $attributes['category_id'] = $request->category_id['id'];
+                $attributes['carton_quantity'] = $request->carton_quantity;
+                $attributes['status'] = 1;
+                $product =  $product->create($attributes);
+                DB::commit();
+                return response()->json($product, 201);
+            }
+
+
     }
 
     /**
@@ -84,7 +92,7 @@ class ProductController extends Controller
 
         try {
             $detail = new Product();
-            $detail = $detail->with(['detail' => fn ($q) => $q->withTrashed()])->find($id);
+            $detail = $detail->with(['detail' => fn ($q) => $q->withTrashed(),'sell' => fn ($q) => $q->withTrashed(),'sell.customer' => fn ($q) => $q->withTrashed()])->find($id);
             return response()->json($detail);
         } catch (\Throwable $th) {
             //throw $th;
@@ -111,6 +119,7 @@ class ProductController extends Controller
 
             $product = Product::find($request->id);
             $attributes = $request->only($product->getFillable());
+            $attributes['carton_quantity']=$product->carton_quantity;
             if (!isset($request->category_id['id'])) {
                 $attributes['category_id']=$request->category['id'];
             }else {
@@ -178,16 +187,18 @@ class ProductController extends Controller
     {
         return $request->validate(
             [
-                'company_name' => 'required',
+                'product_name' => 'required',
+
                 'product_name' => 'required',
                 'category_id' => 'required',
 
 
             ],
             [
-                'company_name.required' => "اسم کمپنی ضروری میباشد",
-                'product_name.required' => "اسم محصول میباشد",
-                'categor_id.required' => "کتگوری ضروری میباشد",
+
+
+                'product_name.required' => "د محصول نوم ضروری ده",
+                'categor_id.required' => "کتګوری ضروری ده",
 
 
             ]
@@ -213,6 +224,15 @@ class ProductController extends Controller
                 $product=Product::where('id',$value)->update(['status'  =>1]);
             }
             return response()->json($product, 202);
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+    public function getProduct($id)
+    {
+        try {
+            $product = Product::where('id', $id)->first();
+            return response()->json($product);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

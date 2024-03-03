@@ -41,8 +41,8 @@ class VendorController extends Controller
             $results = collect($query->items());
             $total = $query->total();
             $results = $results->map(function ($result) {
-                $result->total_price = $result->items_sum_total + $result->extra_expense_sum_price;
-                $result->remainder = $result->total_price - $result->payments_sum_amount;
+                $result->total_price = round($result->items_sum_total + $result->extra_expense_sum_price,2);
+                $result->remainder = round($result->total_price - $result->payments_sum_amount,2);
                 return $result;
             });
 
@@ -98,15 +98,14 @@ class VendorController extends Controller
     {
         //
         try {
-
             $query = new Purchase();
             $query =  $query->whereVendorId($id)->with('vendor')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total');
             $purchases = $query->latest()->get();
             $purchases = collect($purchases);
             $purchases = $purchases->map(function ($result) {
-                $result->total_price = $result->items_sum_total + $result->extra_expense_sum_price;
-                $result->remainder = $result->total_price - $result->payments_sum_amount;
-                $result->paid_amount = $result->total_price - $result->remainder;
+                $result->total_price = round($result->items_sum_total + $result->extra_expense_sum_price,2);
+                $result->remainder = round($result->total_price - $result->payments_sum_amount,2);
+                $result->paid_amount = round($result->total_price - $result->remainder,2);
                 return $result;
             });
             return response()->json(['purchases' => $purchases]);
@@ -215,8 +214,8 @@ class VendorController extends Controller
 
             ],
             [
-                'organization_name.required' => "اسم کمپنی ضروری میباشد",
-                'name.required' => "اسم ضروری میباشد",
+                'organization_name.required' => "د کمپني نوم ضروری ده",
+                'name.required' => "نوم ضروری ده",
 
 
             ]

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Sell extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['sell_date', 'description', 'created_at', 'customer_id'];
+    protected $fillable = ['sell_date', 'description','walkin_name','total_amount','total_paid', 'created_at', 'customer_id'];
 
     public function payments(): HasMany
     {
@@ -20,7 +20,7 @@ class Sell extends Model
     {
         return $this->hasMany(SellItem::class);
     }
-  
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

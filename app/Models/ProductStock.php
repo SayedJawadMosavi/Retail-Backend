@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ProductStock extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['product_id','stock_id', 'quantity','description', 'created_by'];
+    protected $fillable = ['product_id','stock_id', 'quantity','description', 'created_by','carton_amount','carton_quantity','alarm_amount'];
 
     public function product(): BelongsTo
     {

@@ -25,7 +25,7 @@ class StockToStockTransferController extends Controller
     {
         try {
             $query = new StockToStockTransfer();
-            $searchCol = ['quantity', 'description', 'created_at'];
+            $searchCol = ['quantity', 'description', 'created_at','carton_quantity','sender.name','receiver.name'];
             $query = $this->search($query, $request, $searchCol);
            $query=$query->with('product_stock.product','sender','receiver');
             $trashTotal = clone $query;
@@ -82,14 +82,18 @@ class StockToStockTransferController extends Controller
                 $attributess['product_id'] = $product_stock_id->product_id;
                 $attributess['stock_id'] = $request->receiver['id'];
                 $attributess['quantity'] = $request->amount;
+                $attributess['alarm_amount'] = $product_stock_id->alarm_amount;
                 $product_stock =  $product_stock->create($attributess);
 
-                $from_product = ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
+                ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
+                ProductStock::where('id', $request->product['id'])->decrement('carton_quantity', $request->carton_quantity);
 
             }else{
 
-                $from_product = ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
+                ProductStock::where('id', $request->product['id'])->decrement('quantity', $request->amount);
+                ProductStock::where('id', $request->product['id'])->decrement('carton_quantity', $request->carton_quantity);
                 ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->increment('quantity', $request->amount);
+                ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->increment('carton_quantity', $request->carton_quantity);
                 $product_stock =ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->first();
             }
                 $attributes['receiver_stock_product_id'] = $product_stock->id;
@@ -170,6 +174,9 @@ class StockToStockTransferController extends Controller
                 $receiver_stock_product_id = $product_stock->id;
                 $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
                 $from_product = ProductStock::where('id', $product_stock_id->id)->decrement('quantity', $request->amount);
+
+                $from_product = ProductStock::where('id', $product_stock_id->id)->increment('carton_quantity', $product->carton_quantity);
+                $from_product = ProductStock::where('id', $product_stock_id->id)->decrement('carton_quantity', $request->carton_quantity);
             }
 
                 $receiver_stock_product_id = ProductStock::where('product_id',$product_stock_id->product_id)->where('stock_id',$request->receiver['id'])->first();
@@ -179,37 +186,54 @@ class StockToStockTransferController extends Controller
                     if ($request->product['id'] == $product->sender_stock_product_id) {
 
                         $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
+                        $from_product = ProductStock::where('id', $product_stock_id->id)->increment('carton_quantity', $product->carton_quantity);
                         $sender_stock_product_id =  ProductStock::find($product->sender_stock_product_id);
 
                         $sender_stock_product_id->decrement('quantity', $request->amount);
-
-
                         $receiver_stock_product_id->decrement('quantity', $product->quantity);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
+
+                        $sender_stock_product_id->decrement('carton_quantity', $request->carton_quantity);
+                        $receiver_stock_product_id->decrement('carton_quantity', $product->carton_quantity);
+                        $receiver_stock_product_id->increment('carton_quantity', $request->carton_quantity);
                     }else{
 
                         ProductStock::find($product->sender_stock_product_id)->increment('quantity', $product->quantity);
                         ProductStock::find($product->receiver_stock_product_id)->decrement('quantity', $product->quantity);
                         ProductStock::find($request->product['id'])->decrement('quantity', $request->amount);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
+
+                        ProductStock::find($product->sender_stock_product_id)->increment('carton_quantity', $product->carton_quantity);
+                        ProductStock::find($product->receiver_stock_product_id)->decrement('carton_quantity', $product->carton_quantity);
+                        ProductStock::find($request->product['id'])->decrement('carton_quantity', $request->carton_quantity);
+                        $receiver_stock_product_id->increment('carton_quantity', $request->carton_quantity);
                     }
                 }else{
 
                     if ($request->product_stock['id'] == $product->sender_stock_product_id) {
                         $from_product = ProductStock::where('id', $product_stock_id->id)->increment('quantity', $product->quantity);
+                        $from_product = ProductStock::where('id', $product_stock_id->id)->increment('carton_quantity', $product->carton_quantity);
                         $sender_stock_product_id =  ProductStock::find($product->sender_stock_product_id);
 
                         $sender_stock_product_id->decrement('quantity', $request->amount);
-
-
                         $receiver_stock_product_id->decrement('quantity', $product->quantity);
                         $receiver_stock_product_id->increment('quantity', $request->amount);
+
+                        $sender_stock_product_id->decrement('carton_quantity', $request->carton_quantity);
+                        $receiver_stock_product_id->decrement('carton_quantity', $product->carton_quantity);
+                        $receiver_stock_product_id->increment('carton_quantity', $request->carton_quantity);
                     }else{
                         ProductStock::find($product->sender_stock_product_id)->increment('quantity', $product->quantity);
                         ProductStock::find($product->receiver_stock_product_id)->decrement('quantity', $product->quantity);
 
                         ProductStock::find($request->product['id'])->decrement('quantity', $request->amount);
                         $product_stock->increment('quantity', $request->amount);
+
+                        ProductStock::find($product->sender_stock_product_id)->increment('carton_quantity', $product->carton_quantity);
+                        ProductStock::find($product->receiver_stock_product_id)->decrement('carton_quantity', $product->carton_quantity);
+
+                        ProductStock::find($request->product['id'])->decrement('carton_quantity', $request->carton_quantity);
+                        $product_stock->increment('carton_quantity', $request->carton_quantity);
                     }
                 }
 
@@ -220,7 +244,7 @@ class StockToStockTransferController extends Controller
             $product =  $product->update($attributes);
 
             DB::commit();
-            return response()->json($product, 202);
+            return response()->json($product, 201);
         } catch (\Exception $th) {
             DB::rollBack();
             return response()->json($th->getMessage(), 500);
@@ -268,10 +292,10 @@ class StockToStockTransferController extends Controller
             ],
             [
 
-                'amount.required' => " مقدار میباشد",
-                'product.required' => "اسم محصول میباشد",
-                'sender.required' => "از گدام ضروری میباشد",
-                'receiver.required' => "به گدام ضروری میباشد",
+                'amount.required' => " د پیسو اندازه ضروری وی",
+                'product.required' => "د محصول نوم ضروري وی",
+                'sender.required' => "ګدام ته لیږل ضروری وی",
+                'receiver.required' => "ګدام نه اخیستل ضروري وی",
 
 
             ]

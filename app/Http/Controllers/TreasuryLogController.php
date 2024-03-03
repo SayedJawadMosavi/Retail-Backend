@@ -48,7 +48,7 @@ class TreasuryLogController extends Controller
 
             }
 
-            $query = $query->with(['user:id,name'])->latest()->paginate($request->itemPerPage);
+            $query = $query->with(['user:id,name'])->orderBy('id')->paginate($request->itemPerPage);
             $results = collect($query->items());
 
             $total = $query->total();

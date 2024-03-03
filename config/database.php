@@ -45,6 +45,14 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
+            'dump' => [
+                'dump_binary_path' => 'E:\xampp\mysql\bin', // only the path, so without `mysqldump` or `pg_dump`
+                // 'dump_binary_path' => '/Applications/MAMP/Library/bin/', // MAC only the path, so without `mysqldump` or `pg_dump`
+                // 'dump_binary_path' => '/usr/bin', // only the path, so without `mysqldump` or `pg_dump`
+
+                'use_single_transaction',
+                'timeout' => 60 * 5, // 5 minute timeout
+            ],
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),

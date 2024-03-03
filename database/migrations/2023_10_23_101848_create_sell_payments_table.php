@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('sell_payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sell_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
+            $table->unsignedBigInteger('sell_id')->nullable();
             $table->foreignId('customer_id')->nullable()->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->double('amount');
             $table->text('description')->nullable();

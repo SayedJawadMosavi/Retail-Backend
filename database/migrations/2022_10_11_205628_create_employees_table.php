@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->string('first_name');
-            $table->string('last_name');
+            $table->string('last_name')->nullable();
             $table->text('profile')->nullable();
             $table->string('email')->nullable();
             $table->string('phone_number')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('permenent_address')->nullable();
             $table->date('employment_start_date');
             $table->date('employment_end_date')->nullable();
-            $table->string('job_title');
+            $table->string('job_title')->nullable();
             $table->float('salary')->default(0);
             $table->float('loan')->default(0)->nullable();
             $table->string('employee_id_number')->nullable();

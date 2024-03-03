@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('stock_id')->nullable()->constrained()->onDelete('cascade')->onUpdate('cascade');
-            $table->double('quantity');
+            $table->double('quantity')->unsigned();
+            $table->double('carton_amount')->unsigned();
+            $table->double('carton_quantity')->unsigned();
+            $table->double('alarm_amount');
             $table->text('description')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->onUpdate('cascade');
             $table->softDeletes();

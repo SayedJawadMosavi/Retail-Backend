@@ -8,6 +8,7 @@ Route::post('restore-customer/{id}', [CustomerController::class, 'restore']);
 Route::post('customer-status/{value}/{id}', [CustomerController::class, 'changeStatus']);
 Route::delete('force-delete-customer/{id}', [CustomerController::class, 'forceDelete']);
 Route::get("customer_reports", [CustomerController::class, "reports"]);
+Route::post('/customer_deposit_withdraw', [CustomerController::class, 'addIDepositWithdraw']);
 
 
 

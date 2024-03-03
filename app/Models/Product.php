@@ -19,9 +19,12 @@ class Product extends Model
         'size',
         'color',
         'quantity',
+        'carton_amount',
+        'unit_name',
+        'carton_quantity',
         'status',
         'description'
-       
+
     ];
     public function category(): BelongsTo
     {
@@ -30,5 +33,9 @@ class Product extends Model
     public function detail()
     {
         return $this->hasMany(PurchaseDetail::class, 'product_id');
+    }
+    public function sell()
+    {
+        return $this->hasMany(SellItem::class, 'product_stock_id');
     }
 }

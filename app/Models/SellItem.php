@@ -11,7 +11,7 @@ class SellItem extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['cost', 'quantity', 'description','total', 'created_at', 'sell_id', 'product_stock_id','customer_id'];
+    protected $fillable = ['cost', 'quantity', 'description','total','per_carton_price','income_price', 'created_at', 'sell_id', 'product_stock_id','customer_id','carton_amount','carton_quantity'];
     public function product_stock(): BelongsTo
     {
         return $this->belongsTo(ProductStock::class);
@@ -19,5 +19,9 @@ class SellItem extends Model
     public function stock(): BelongsTo
     {
         return $this->belongsTo(Stock::class);
+    }
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 }

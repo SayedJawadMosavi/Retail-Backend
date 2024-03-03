@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\DepositWithdraw;
+use App\Models\Sell;
+use App\Models\TreasuryLog;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +38,7 @@ class CustomerController extends Controller
 
         try {
             $query = new Customer();
-            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at','tazkira_number','address'];
+            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at','tazkira_number','address','total_amount'];
             $query = $this->search($query, $request, $searchCol);
             $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total');
 
@@ -49,6 +52,7 @@ class CustomerController extends Controller
             if ($request->tab == 'trash') {
                 $query = $query->onlyTrashed();
             }
+            $query = $query->orderBy('first_name', 'asc');
             $query = $query->latest()->paginate($request->itemPerPage);
 
             $results = collect($query->items());
@@ -93,7 +97,7 @@ class CustomerController extends Controller
             $customer =  $customer->create($attributes);
 
             DB::commit();
-            return response()->json($customer, 200);
+            return response()->json($customer, 201);
         } catch (\Exception $th) {
             DB::rollBack();
             return response()->json($th->getMessage(), 500);
@@ -105,7 +109,18 @@ class CustomerController extends Controller
      */
     public function show(string $id)
     {
-        #######
+        try {
+            $customer = new Customer();
+            $customer = $customer->with(['payments' => fn ($q) => $q->withTrashed(), 'sell' => fn ($q) => $q->withTrashed(), 'deposit_withdraw' => fn ($q) => $q->withTrashed(), 'items' => fn ($q) => $q->withTrashed(), 'items.product_stock.product' => fn ($q) => $q->withTrashed(), 'items.product_stock.stock' => fn ($q) => $q->withTrashed()])->withTrashed()->withSum('payments', 'amount')->withSum('sell', 'total_amount')->withSum('sell', 'total_paid')->find($id);
+            // $customer->total_price = round($customer->sell_sum_total_amount,2);
+            // $customer->total_paid = round($customer->sell_sum_total_paid,2);
+            $customer->remainder  = round($customer->total_amount - $customer->total_paid,2);
+
+            return response()->json($customer);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json($th->getMessage(), 500);
+        }
     }
 
 
@@ -204,15 +219,15 @@ class CustomerController extends Controller
         return $request->validate(
             [
                 'first_name' => 'required',
-                'last_name' => 'required',
+
 
 
             ],
             [
-                'first_name.required' => "The name is required",
-                'last_name.required' => "The last name is required",
-                'phone_number.unique' => "phone number is exist",
-                'tazkira_number.unique' => 'this tazkira_number is used before!',
+                'first_name.required' => "نوم ضروری ده",
+
+                'phone_number.unique' => "شماره تلفن موجود ده",
+                'tazkira_number.unique' => 'دا تذکره شمیره مخکې کارول کیږي!',
 
 
             ]
@@ -254,6 +269,61 @@ class CustomerController extends Controller
 
             return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['customers' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+    public function addIDepositWithdraw(Request $request)
+    {
+
+
+        try {
+            $request->validate(
+                [
+                    'customer_id' => ['required'],
+                    'created_at' => ['required', 'date', 'before_or_equal:' . now()],
+                    'amount' => 'required|numeric|min:1',
+                    'type' => 'required',
+
+                ],
+                [
+                    'customer_id.required' => 'customer id is required!',
+                    "created_at.required" => "date is required",
+                    "created_at.date" => "date is not correct",
+                    "created_at.before_or_equal" => "register date can not be bigger than now!",
+                    'type.required' => 'type is required',
+                    'amount.required' => 'amount is required ',
+                    'amount.numeric' => 'amount must be numeric',
+                    'amount.min' => 'amount can not be less than one',
+
+                ],
+
+            );
+            DB::beginTransaction();
+            $user_id = Auth::user()->id;
+            $attributes = $request->all();
+            $attributes['created_by'] = $user_id;
+
+            $attributes['created_at'] = $attributes['created_at'];
+            $attributes['customer_id'] = $request->customer_id;
+            $item =  DepositWithdraw::create($attributes);
+
+            $customer = Customer::find($request->customer_id);
+
+            if ($attributes['type'] == "deposit") {
+
+                    $customer->increment('total_paid', $request->amount);
+
+                TreasuryLog::create(['table' => "customer_deposit_withdraw", 'table_id' => $item->id, 'type' => 'deposit', 'name' => ' راکړی لپاره' . ' (  پیرودونکي'  . '    ' . $customer->first_name . ' )', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at,]);
+            } else if ($attributes['type'] == "withdraw") {
+
+                    $customer->increment('total_amount', $request->amount);
+
+                TreasuryLog::create(['table' => "customer_deposit_withdraw", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => ' ورکړی لپاره' . ' (  پیرودونکي'  . '    ' . $customer->first_name . ' )', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at,]);
+            }
+            DB::commit();
+            return response()->json($item, 201);
+        } catch (\Exception $th) {
+            DB::rollBack();
             return response()->json($th->getMessage(), 500);
         }
     }

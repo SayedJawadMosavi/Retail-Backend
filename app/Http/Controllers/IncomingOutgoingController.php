@@ -34,10 +34,10 @@ class IncomingOutgoingController extends Controller
 
             $totalIncomes = clone $query;
             $totalIncomes = $totalIncomes->whereType('incoming')->sum('amount');
-            $query=$query->with('category');
+
             $totalOutGoing = clone $query;
             $totalOutGoing = $totalOutGoing->whereType('outgoing')->sum('amount');
-
+            $query=$query->with('category');
             $searchCol = ['name', 'type', 'amount', 'created_by'];
             $query = $this->search($query, $request, $searchCol);
 
@@ -95,9 +95,9 @@ class IncomingOutgoingController extends Controller
             $incoming =  $incoming->create($attributes);
             if ($incoming) {
                 if ($request->type=="incoming") {
-                    TreasuryLog::create(['table' => "incoming", 'table_id' => $incoming->id,'type' =>'deposit', 'name' => '(   آمد بابت'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+                    TreasuryLog::create(['table' => "incoming", 'table_id' => $incoming->id,'type' =>'deposit', 'name' => '(   لپاره راغلی'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
                 }else{
-                    TreasuryLog::create(['table' => "outgoing", 'table_id' => $incoming->id,'type' =>'withdraw', 'name' => '(   رفت بابت'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
+                    TreasuryLog::create(['table' => "outgoing", 'table_id' => $incoming->id,'type' =>'withdraw', 'name' => '(  لپاره مصرف'. '   '.$request->name.   ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at]);
 
                 }
 
@@ -127,6 +127,8 @@ class IncomingOutgoingController extends Controller
     {
         $this->storeValidation($request);
         try {
+            DB::beginTransaction();
+
             $incomingOutgoing = IncomingOutgoing::find($request->id);
             $attributes = $request->only($incomingOutgoing->getFillable());
             if (!isset($request->category_id['id'])) {
@@ -135,18 +137,24 @@ class IncomingOutgoingController extends Controller
                 $attributes['category_id']=$request->category_id['id'];
 
             }
-            $incomingOutgoing->update($attributes);
-            if ($request->type=="incoming") {
+            if ($request->type != $incomingOutgoing->type) {
+                // If the type has changed
+                $log = TreasuryLog::withTrashed()->where(['table' => $incomingOutgoing->type === 'incoming' ? 'incoming' : 'outgoing', 'table_id' => $request->id])->first();
 
-                $log = TreasuryLog::withTrashed()->where(['table' => 'incoming', 'table_id' => $request->id])->first();
-                $log->amount = $request->amount;
-                $log->save();
-            }else{
-                $log = TreasuryLog::withTrashed()->where(['table' => 'outgoing', 'table_id' => $request->id])->first();
-                $log->amount = $request->amount;
-                $log->save();
+                if ($request->type == "incoming") {
+                    $log->table = 'incoming';
+                } else {
+                    $log->table = 'outgoing';
+                }
 
+                $log->type = $request->type =="incoming" ? 'deposit'  :'withdraw';
+            } else {
+                // If the type has not changed
+                $log = TreasuryLog::withTrashed()->where(['table' => $incomingOutgoing->type, 'table_id' => $request->id])->first();
             }
+            $log->amount = $request->amount;
+            $incomingOutgoing->update($attributes);
+
             DB::commit();
             return response()->json($incomingOutgoing,202);
         } catch (\Throwable $th) {
@@ -181,11 +189,11 @@ class IncomingOutgoingController extends Controller
                 'amount' => 'required|min_digits:1',
             ],
             [
-                'name.required' => 'نام ضروری میباشد',
-                'name.min' => 'نام کمتر از سه شده نیتواند',
-                'type.required' => 'نوعیت ضروری میباشد',
-                'amount.required' => "مقدار ضروری می باشد",
-                'amount.min_digits' => "مقدار از کمتر از یک شده نمی تواند",
+                'name.required' => 'نوم ضروری ده',
+                'name.min' => 'نوم د دری حروفو نه کم نشی کیدلای',
+                'type.required' => 'نوعیت ضروری ده',
+                'amount.required' => "د پیسو اندازه ضروری ده",
+                'amount.min_digits' => "د د پیسو اندازه د یوی نه کم نشی کیدلای",
 
             ]
 

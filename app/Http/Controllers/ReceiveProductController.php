@@ -41,21 +41,25 @@ class ReceiveProductController extends Controller
             $dates = new DateTime($date1);
             $attributes['created_at'] = $dates->format("Y-m-d");
             $attributes['purchase_item_id'] = $request->product_item_id;
+            $attributes['quantity'] = $request->quantity_receive;
 
 
             $receiveProduct =  $receiveProduct->create($attributes);
             if ($receiveProduct) {
                 $p=  Product::find($request->product_id);
                 $product= Product::find($request->product_id)->update([
-                'quantity'    =>$p->quantity+$request->quantity,
+                'quantity'    =>$p->quantity+$request->quantity_receive,
+                'carton_amount'    =>$p->carton_amount+$request->carton_quantity,
 
                ]);
                $pr=  PurchaseDetail::find($request->product_item_id);
-               if ($request->quantity+$pr->received > $pr->quantity ) {
-                   return response()->json('نمیتواند بزرگتر از مجموع باشد', 422);
+               if ($request->quantity_receive > $pr->quantity-$pr->received ) {
+                   return response()->json('د مجموعی نه لوی نشی کیدلای', 422);
                }
                 $product= PurchaseDetail::where('id',$request->product_item_id)->update([
-                'received'    =>$pr->received+$request->quantity,
+                'received'    =>$pr->received+$request->quantity_receive,
+
+                'receive_carton'    =>$pr->receive_carton+$request->carton_quantity,
 
                ]);
 

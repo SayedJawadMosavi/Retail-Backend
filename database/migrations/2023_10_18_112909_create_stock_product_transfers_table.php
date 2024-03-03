@@ -17,6 +17,10 @@ return new class extends Migration
             $table->foreignId('stock_id')->nullable()->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->unsignedBigInteger('stock_product_id');
             $table->double('quantity');
+            $table->double('carton_amount');
+            $table->double('carton_quantity');
+            $table->double('alarm_amount');
+
             $table->text('description')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->onUpdate('cascade');
             $table->softDeletes();
