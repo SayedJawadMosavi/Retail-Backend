@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->text('description')->nullable();
             $table->double('total_amount')->default(0);
-            $table->double('total_paid')->nullable();
+            $table->double('total_paid')->default(0);
             $table->boolean('status')->default(1);
             $table->softDeletes();
             $table->timestamps();

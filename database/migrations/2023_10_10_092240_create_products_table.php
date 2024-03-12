@@ -22,6 +22,8 @@ return new class extends Migration
             $table->double('quantity')->nullable()->unsigned();
             $table->double('carton_amount')->nullable()->unsigned();
             $table->double('carton_quantity')->nullable()->unsigned();
+            $table->double('per_carton_cost')->default(0);
+            $table->double('sell_price')->default(0);
             $table->unsignedBigInteger('category_id');
             $table->text('description')->nullable();
             $table->boolean('status')->default(false);

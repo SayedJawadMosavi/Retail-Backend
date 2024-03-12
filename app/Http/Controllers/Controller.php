@@ -14,23 +14,23 @@ class Controller extends BaseController
     {
         # code...
         return [
-         
+
             "created_at.date" => "register date is not correct",
             "created_at.before_or_equal" => "register date can not be greater than now!",
             "date.required" => "date is required",
             "date.before_or_equal" => "register date can not be greater than now!",
             'name.required' => 'name is required',
             'name.min' => 'name can not be less than three letter',
-         
+
             'customer_name.required' => 'customer is required',
             'customer_phone.required' => 'phone number is required',
-      
+
             'address.required' => 'address is required',
-          
-      
+
+
             'paid_amount.numeric' => 'paid amount must be number',
             'paid_amount.min' => 'paid amount can not be less than one',
-      
+
         ];
     }
 

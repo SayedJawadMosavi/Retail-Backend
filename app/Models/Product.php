@@ -22,6 +22,8 @@ class Product extends Model
         'carton_amount',
         'unit_name',
         'carton_quantity',
+        'per_carton_cost',
+        'sell_price',
         'status',
         'description'
 
@@ -38,4 +40,5 @@ class Product extends Model
     {
         return $this->hasMany(SellItem::class, 'product_stock_id');
     }
+
 }

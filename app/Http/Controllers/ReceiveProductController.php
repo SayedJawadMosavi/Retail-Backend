@@ -47,12 +47,16 @@ class ReceiveProductController extends Controller
             $receiveProduct =  $receiveProduct->create($attributes);
             if ($receiveProduct) {
                 $p=  Product::find($request->product_id);
+                $pr=  PurchaseDetail::find($request->product_item_id);
                 $product= Product::find($request->product_id)->update([
                 'quantity'    =>$p->quantity+$request->quantity_receive,
                 'carton_amount'    =>$p->carton_amount+$request->carton_quantity,
+                'per_carton_cost'    =>$pr->per_carton_cost,
+                'sell_price'    =>$pr->sell_price,
 
                ]);
-               $pr=  PurchaseDetail::find($request->product_item_id);
+
+
                if ($request->quantity_receive > $pr->quantity-$pr->received ) {
                    return response()->json('د مجموعی نه لوی نشی کیدلای', 422);
                }

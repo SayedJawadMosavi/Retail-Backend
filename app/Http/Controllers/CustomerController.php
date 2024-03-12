@@ -38,8 +38,11 @@ class CustomerController extends Controller
 
         try {
             $query = new Customer();
-            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at','tazkira_number','address','total_amount'];
+            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at', 'tazkira_number', 'address', 'total_amount'];
             $query = $this->search($query, $request, $searchCol);
+            $total_sell = clone $query;
+            $total_amount = $total_sell->sum('total_amount');
+            $total_paid = $total_sell->sum('total_paid');
             $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total');
 
 
@@ -52,7 +55,7 @@ class CustomerController extends Controller
             if ($request->tab == 'trash') {
                 $query = $query->onlyTrashed();
             }
-            $query = $query->orderBy('first_name', 'asc');
+            $query = $query->orderByRaw('(total_amount - total_paid) DESC');
             $query = $query->latest()->paginate($request->itemPerPage);
 
             $results = collect($query->items());
@@ -63,7 +66,7 @@ class CustomerController extends Controller
                 return $result;
             });
 
-            return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['customers' => $allTotal, 'trash' => $trashTotal]]);
+            return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['customers' => $allTotal, 'trash' => $trashTotal], 'customer_info' => ['total_amount' => $total_amount, 'total_paid' => $total_paid, 'total_reminder'  => $total_amount - $total_paid]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
@@ -114,7 +117,7 @@ class CustomerController extends Controller
             $customer = $customer->with(['payments' => fn ($q) => $q->withTrashed(), 'sell' => fn ($q) => $q->withTrashed(), 'deposit_withdraw' => fn ($q) => $q->withTrashed(), 'items' => fn ($q) => $q->withTrashed(), 'items.product_stock.product' => fn ($q) => $q->withTrashed(), 'items.product_stock.stock' => fn ($q) => $q->withTrashed()])->withTrashed()->withSum('payments', 'amount')->withSum('sell', 'total_amount')->withSum('sell', 'total_paid')->find($id);
             // $customer->total_price = round($customer->sell_sum_total_amount,2);
             // $customer->total_paid = round($customer->sell_sum_total_paid,2);
-            $customer->remainder  = round($customer->total_amount - $customer->total_paid,2);
+            $customer->remainder  = round($customer->total_amount - $customer->total_paid, 2);
 
             return response()->json($customer);
         } catch (\Throwable $th) {
@@ -152,17 +155,16 @@ class CustomerController extends Controller
             return response()->json($th->getMessage(), 500);
         }
     }
-    public function changeStatus($id,$value)
+    public function changeStatus($id, $value)
     {
 
 
         try {
 
-            if ($id==1) {
-                $pacakge=Customer::where('id',$value)->update(['status'  =>0]);
-            }else if ($id==0) {
-                $pacakge=Customer::where('id',$value)->update(['status'  =>1]);
-
+            if ($id == 1) {
+                $pacakge = Customer::where('id', $value)->update(['status'  => 0]);
+            } else if ($id == 0) {
+                $pacakge = Customer::where('id', $value)->update(['status'  => 1]);
             }
             return response()->json($pacakge, 202);
         } catch (\Throwable $th) {
@@ -239,7 +241,7 @@ class CustomerController extends Controller
     {
         try {
             $query = new Customer();
-            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at','tazkira_number'];
+            $searchCol = ['first_name', 'last_name', 'email', 'phone_number', 'created_at', 'tazkira_number'];
             $query = $this->search($query, $request, $searchCol);
             $date1 = new DateTime($request->start_date);
             $startDate = $date1->format('Y-m-d');
@@ -310,13 +312,21 @@ class CustomerController extends Controller
             $customer = Customer::find($request->customer_id);
 
             if ($attributes['type'] == "deposit") {
-
+                if ($customer->total_paid == null) {
+                    $customer->total_paid = 0;
+                    $customer->save();
                     $customer->increment('total_paid', $request->amount);
+                }
+                $customer->increment('total_paid', $request->amount);
 
                 TreasuryLog::create(['table' => "customer_deposit_withdraw", 'table_id' => $item->id, 'type' => 'deposit', 'name' => ' راکړی لپاره' . ' (  پیرودونکي'  . '    ' . $customer->first_name . ' )', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at,]);
             } else if ($attributes['type'] == "withdraw") {
-
+                if ($customer->total_amount == null) {
+                    $customer->total_amount = 0;
+                    $customer->save();
                     $customer->increment('total_amount', $request->amount);
+                }
+                $customer->increment('total_amount', $request->amount);
 
                 TreasuryLog::create(['table' => "customer_deposit_withdraw", 'table_id' => $item->id, 'type' => 'withdraw', 'name' => ' ورکړی لپاره' . ' (  پیرودونکي'  . '    ' . $customer->first_name . ' )', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $request->created_at,]);
             }

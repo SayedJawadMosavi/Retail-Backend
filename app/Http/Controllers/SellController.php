@@ -7,6 +7,7 @@ use App\Models\SellItem;
 use App\Models\TreasuryLog;
 use App\Models\ProductStock;
 use App\Models\Customer;
+use App\Models\DepositWithdraw;
 use App\Models\Product;
 use App\Models\PurchaseDetail;
 use App\Models\SellPayment;
@@ -32,7 +33,7 @@ class SellController extends Controller
     {
         try {
             $query = new Sell();
-            $searchCol = ['sell_date','customer.first_name','total_amount','total_paid','description', 'created_at'];
+            $searchCol = ['sell_date', 'customer.first_name', 'total_amount', 'total_paid', 'description', 'created_at'];
 
             $query = $this->search($query, $request, $searchCol);
             $query = $query->with('customer')->withSum('payments', 'amount')->withSum('items', 'total')->withSum('items', 'cost');
@@ -249,6 +250,18 @@ class SellController extends Controller
 
                 TreasuryLog::withTrashed()->where(['table' => 'sell'])->whereIn('table_id', $ids)->restore();
             }
+            if ($type == 'deposit_witdraw') {
+                $model = new DepositWithdraw();
+                $payment = DepositWithdraw::withTrashed()->where('id', $id)->first();
+                if ($payment->type == "deposit") {
+                    Customer::where('id', $payment->customer_id)->increment('total_paid', $payment->amount);
+                } else {
+
+                    Customer::where('id', $payment->customer_id)->increment('total_amount', $payment->amount);
+                }
+
+                TreasuryLog::withTrashed()->where(['table' => 'customer_deposit_withdraw'])->whereIn('table_id', $ids)->restore();
+            }
             if ($type == 'items') {
 
                 $product = SellItem::withTrashed()->where('id', $id)->first();
@@ -273,6 +286,7 @@ class SellController extends Controller
 
     public function destroy(string $type, string $id)
     {
+
 
         try {
             DB::beginTransaction();
@@ -301,6 +315,17 @@ class SellController extends Controller
 
                 $model = new SellPayment();
                 TreasuryLog::withTrashed()->where(['table' => 'sell'])->whereIn('table_id', $ids)->delete();
+            }
+            if ($type == 'deposit_witdraw') {
+                $payment = DepositWithdraw::where('id', $id)->first();
+                if ($payment->type == "deposit") {
+                    Customer::where('id', $payment->customer_id)->decrement('total_paid', $payment->amount);
+                } else {
+                    Customer::where('id', $payment->customer_id)->decrement('total_amount', $payment->amount);
+                }
+
+                $model = new DepositWithdraw();
+                TreasuryLog::withTrashed()->where(['table' => 'customer_deposit_withdraw'])->whereIn('table_id', $ids)->delete();
             }
             if ($type == 'items') {
 
@@ -341,6 +366,10 @@ class SellController extends Controller
             if ($type == 'payments') {
                 $model = new SellPayment();
                 TreasuryLog::withTrashed()->where(['table' => 'sell'])->whereIn('table_id', $ids)->forceDelete();
+            }
+            if ($type == 'deposit_witdraw') {
+                $model = new DepositWithdraw();
+                TreasuryLog::withTrashed()->where(['table' => 'customer_deposit_withdraw'])->whereIn('table_id', $ids)->forceDelete();
             }
             if ($type == 'items') {
                 $model = new SellItem();
@@ -477,7 +506,7 @@ class SellController extends Controller
                     $attributes['product_stock_id'] = $request->product_id['id'];
                     $attributes['quantity'] = $request->carton_quantity * $request->carton_amount;
                     if ($request->product_id['id'] != $product->product_stock_id) {
-                        ProductStock::where('id', $product->product_stock_id)->increment('quantity', $product->carton_amount*$product->carton_quantity);
+                        ProductStock::where('id', $product->product_stock_id)->increment('quantity', $product->carton_amount * $product->carton_quantity);
                         ProductStock::where('id', $request->product_id['id'])->decrement('quantity', $request->carton_quantity * $request->carton_amount);
                         ProductStock::where('id', $product->product_stock_id)->increment('carton_quantity', $product->carton_quantity);
                         ProductStock::where('id', $request->product_id['id'])->decrement('carton_quantity', $request->carton_quantity);
@@ -497,7 +526,7 @@ class SellController extends Controller
                     return response()->json('دا نشي کولی د مجموعې کارتن څخه ډیر وي', 422);
                 } else {
                     $attributes['product_stock_id'] = $request->product_stock_id;
-                    ProductStock::where('id', $product->product_stock_id)->increment('quantity', $product->carton_amount*$product->carton_quantity);
+                    ProductStock::where('id', $product->product_stock_id)->increment('quantity', $product->carton_amount * $product->carton_quantity);
                     ProductStock::where('id', $product->product_stock_id)->decrement('quantity', $request->carton_quantity * $request->carton_amount);
 
                     ProductStock::where('id', $product->product_stock_id)->increment('carton_quantity', $product->carton_quantity);
@@ -620,7 +649,7 @@ class SellController extends Controller
     public function getCustomer(Request $request)
     {
         try {
-            $customer = Customer::select(['id', 'first_name','type'])->where('status', 1)->get();
+            $customer = Customer::select(['id', 'first_name', 'type'])->where('status', 1)->get();
 
             return response()->json($customer);
         } catch (\Throwable $th) {
@@ -641,10 +670,9 @@ class SellController extends Controller
     {
         try {
             $product = ProductStock::find($id);
-            $product=Product::where('id',$product->product_id)->first();
+            $product = Product::where('id', $product->product_id)->first();
 
             return response()->json($product);
-
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }

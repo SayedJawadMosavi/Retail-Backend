@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\Stock;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class StockController extends Controller
     {
         try {
             $query = new Stock();
-            $searchCol = ['id','name', 'created_at'];
+            $searchCol = ['id', 'name', 'created_at'];
             $query = $this->search($query, $request, $searchCol);
             $trashTotal = clone $query;
             $trashTotal = $trashTotal->onlyTrashed()->count();
@@ -38,24 +39,25 @@ class StockController extends Controller
             $results = collect($query->items());
             $total = $query->total();
 
-            return response()->json(["data" => $results,'total' => $total,  "extraTotal" => ['stocks' => $allTotal, 'trash' => $trashTotal]]);
+            return response()->json(["data" => $results, 'total' => $total,  "extraTotal" => ['stocks' => $allTotal, 'trash' => $trashTotal]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
     }
-    public function getStockData(Request $request,$id)
+    public function searchData(Request $request, $id)
     {
 
         try {
 
             $query = new ProductStock();
-            $searchCol = ['quantity','carton_quantity', 'description', 'created_at','product.product_name','stock.name'];
+            $searchCol = ['quantity', 'carton_quantity', 'description', 'created_at', 'product.product_name', 'stock.name'];
+            $query = $query->where('stock_id', $id);
             $query = $this->search($query, $request, $searchCol);
-            $query=$query->with('product','stock');
+            $query = $query->with('product', 'stock');
 
-           $trashTotal = clone $query;
+            $trashTotal = clone $query;
 
-           $trashTotal = $trashTotal->onlyTrashed()->count();
+            $trashTotal = $trashTotal->onlyTrashed()->count();
 
 
             $allTotal = clone $query;
@@ -63,7 +65,8 @@ class StockController extends Controller
             if ($request->tab == 'trash') {
                 $query = $query->onlyTrashed();
             }
-            $query = $query->where('stock_id',$id)->latest()->paginate($request->itemPerPage);
+
+            $query = $query->where('product_stocks.stock_id', $id)->latest()->paginate($request->itemPerPage);
             $results = collect($query->items());
             $total = $query->total();
             $result = [
@@ -73,6 +76,20 @@ class StockController extends Controller
 
             ];
             return response()->json($result);
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+    public function getStockData(Request $request, $id)
+    {
+        try {
+            $product_stock = array();
+            $product =   Product::where('product_name', 'like', "%$request->search%")->get();
+            foreach ($product as $key) {
+                array_push($product_stock, $key->id);
+            }
+            $product_stocks =   ProductStock::with('product', 'stock')->whereIn('product_id', $product_stock)->where('stock_id', $id)->paginate($request->itemPerPage);
+            return response()->json($product_stocks);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
@@ -221,15 +238,14 @@ class StockController extends Controller
         );
     }
 
-    public function changeStatus($id,$value)
+    public function changeStatus($id, $value)
     {
         try {
 
-            if ($id==1) {
-                $stock=Stock::where('id',$value)->update(['status'  =>0]);
-            }else if ($id==0) {
-                $stock=Stock::where('id',$value)->update(['status'  =>1]);
-
+            if ($id == 1) {
+                $stock = Stock::where('id', $value)->update(['status'  => 0]);
+            } else if ($id == 0) {
+                $stock = Stock::where('id', $value)->update(['status'  => 1]);
             }
             return response()->json($stock, 202);
         } catch (\Throwable $th) {

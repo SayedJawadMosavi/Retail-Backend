@@ -9,5 +9,5 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class SellPayment extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['sell_id', 'amount','description', 'customer_id', 'created_by'];
+    protected $fillable = ['sell_id', 'amount','created_at','description', 'customer_id', 'created_by'];
 }
