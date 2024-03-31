@@ -58,6 +58,7 @@ class ExpenseIncomeCategoryController extends Controller
             // $attributes['status'] = 'false';
             $category->create([
                 'name' => $request->name,
+                'type' => $request->type,
                 'status' => 1,
             ]);
             DB::commit();
@@ -98,6 +99,7 @@ class ExpenseIncomeCategoryController extends Controller
             // $attributes['status'] = 'false';
             $category->update([
                 'name' => $request->name,
+                'type' => $request->type,
 
             ]);
             DB::commit();
@@ -186,6 +188,16 @@ class ExpenseIncomeCategoryController extends Controller
     {
         try {
             $category = ExpenseIncomeCategory::select(['id', 'name'])->where('status', 1)->get();
+            return response()->json($category);
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+    public function getExpenseIncomeCategory($type)
+    {
+        // $type=$type=="expense" ? 'outgoing'  :'incoming';
+        try {
+            $category = ExpenseIncomeCategory::select(['id', 'name'])->where('status', 1)->where('type',$type)->get();
             return response()->json($category);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);

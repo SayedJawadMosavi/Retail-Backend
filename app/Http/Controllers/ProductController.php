@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductStock;
+use App\Models\PurchaseDetail;
+use App\Models\SellItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -90,12 +93,31 @@ class ProductController extends Controller
     public function show(string $id)
     {
 
+        // try {
+        //     $detail = new Product();
+        //     $detail = $detail->with(['detail' => fn ($q) => $q->withTrashed(),'sell' => fn ($q) => $q->withTrashed(),'sell.customer' => fn ($q) => $q->withTrashed()])->find($id);
+        //     return response()->json($detail);
+        // } catch (\Throwable $th) {
+        //     //throw $th;
+        //     return response()->json($th->getMessage(), 500);
+        // }
+
         try {
-            $detail = new Product();
-            $detail = $detail->with(['detail' => fn ($q) => $q->withTrashed(),'sell' => fn ($q) => $q->withTrashed(),'sell.customer' => fn ($q) => $q->withTrashed()])->find($id);
-            return response()->json($detail);
+            // Retrieve the product_stock_id associated with the product_id
+            $product_stock_ids = ProductStock::where('product_id', $id)->pluck('id');
+
+            // Retrieve SellItems based on the product_id
+            $sell = SellItem::whereIn('product_stock_id', $product_stock_ids)->with(['customer' => fn ($q) => $q->withTrashed()])->get();
+
+            // Optionally, you can load other related data
+            $detail = PurchaseDetail::where('product_id',$id)->get();
+
+            // Return the response
+            return response()->json([
+                'detail' => $detail,
+                'sell' => $sell,
+            ]);
         } catch (\Throwable $th) {
-            //throw $th;
             return response()->json($th->getMessage(), 500);
         }
     }

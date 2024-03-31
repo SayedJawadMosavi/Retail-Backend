@@ -41,6 +41,7 @@ Route::group(['prefix' => 'v1'], function () {
         Route::get("analytics", [DashboardController::class, "index"]);
         Route::get("reports", [DashboardController::class, "reports"]);
         Route::get("get_report", [DashboardController::class, "getReports"]);
+        Route::get("customer_reports", [DashboardController::class, "getCustomerReports"]);
         Route::get("get_profit_lost", [DashboardController::class, "getProfitLost"]);
     });
 });

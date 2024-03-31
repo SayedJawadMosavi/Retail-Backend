@@ -102,6 +102,21 @@ class DashboardController extends Controller
         }
     }
 
+    public function getCustomerReports(Request $request)
+    {
+
+        $query = new Customer();
+        $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total');
+
+        $query = $query->latest()->get();
+
+        $results = $query->map(function ($result) {
+            $result->total_price = $result->items_sum_total;
+            $result->remainder = $result->total_price - $result->payments_sum_amount;
+            return $result;
+        });
+        return response()->json($results);
+    }
     public function reports(Request $request)
     {
 
@@ -182,9 +197,10 @@ class DashboardController extends Controller
                 return response()->json($data);
             }
             if ($type == 'customers') {
+
                 $query = new Customer();
                 $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total');
-                $query =     $query->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+
                 $query = $query->latest()->get();
 
                 $results = $query->map(function ($result) {
@@ -370,6 +386,7 @@ class DashboardController extends Controller
             }
         } else if ($request->type == "income") {
             try {
+
                 $query = new IncomingOutgoing();
                 $searchCol = ['name', 'type', 'amount', 'created_by', 'expense_category'];
                 $query = $this->search($query, $request, $searchCol);
@@ -380,7 +397,8 @@ class DashboardController extends Controller
                 $endDate = $date1->format('Y-m-d');
 
                 $query =     $query->where('type', 'incoming')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
-
+                $total = clone $query;
+                $total_amount = $total->sum('amount');
                 $trashTotal = clone $query;
                 $trashTotal = $trashTotal->onlyTrashed()->count();
 
@@ -394,12 +412,13 @@ class DashboardController extends Controller
                 $results = $query->items();
                 $total = $query->total();
 
-                return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal]]);
+                return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal], 'expense_income_info' => ['total_amount' => $total_amount]]);
             } catch (Exception $th) {
                 return response()->json($th->getMessage(), 500);
             }
         } else if ($request->type == "expense") {
             try {
+
                 $query = new IncomingOutgoing();
                 $searchCol = ['name', 'type', 'amount', 'created_by', 'expense_category'];
                 $query = $this->search($query, $request, $searchCol);
@@ -408,7 +427,9 @@ class DashboardController extends Controller
                 $startDate = $date1->format('Y-m-d');
                 $date1 = new DateTime($request->end_date);
                 $endDate = $date1->format('Y-m-d');
-                $query =     $query->where('type', 'outgoing')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                $query =     $query->where('type', 'outgoing')->where('category_id',$request->category_id['id'])->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                $total = clone $query;
+                $total_amount = $total->sum('amount');
                 $trashTotal = clone $query;
                 $trashTotal = $trashTotal->onlyTrashed()->count();
                 $allTotal = clone $query;
@@ -419,7 +440,7 @@ class DashboardController extends Controller
                 $query = $query->latest()->paginate($request->itemPerPage);
                 $results = $query->items();
                 $total = $query->total();
-                return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal]]);
+                return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal], 'expense_income_info' => ['total_amount' => $total_amount]]);
             } catch (Exception $th) {
                 return response()->json($th->getMessage(), 500);
             }

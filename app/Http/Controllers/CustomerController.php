@@ -315,7 +315,7 @@ class CustomerController extends Controller
                 if ($customer->total_paid == null) {
                     $customer->total_paid = 0;
                     $customer->save();
-                    $customer->increment('total_paid', $request->amount);
+
                 }
                 $customer->increment('total_paid', $request->amount);
 
@@ -324,7 +324,7 @@ class CustomerController extends Controller
                 if ($customer->total_amount == null) {
                     $customer->total_amount = 0;
                     $customer->save();
-                    $customer->increment('total_amount', $request->amount);
+
                 }
                 $customer->increment('total_amount', $request->amount);
 

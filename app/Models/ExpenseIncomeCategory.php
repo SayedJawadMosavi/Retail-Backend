@@ -12,6 +12,7 @@ class ExpenseIncomeCategory extends Model
     use SoftDeletes;
     protected $fillable = [
         'name',
-        'status'
+        'status',
+        'type'
     ];
 }
