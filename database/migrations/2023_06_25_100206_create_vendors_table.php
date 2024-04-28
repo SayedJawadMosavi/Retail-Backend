@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('address')->nullable();
             $table->string('email')->nullable();
             $table->string('phone_number')->nullable();
+            $table->double('total_amount')->default(0);
+            $table->double('total_paid')->default(0);
             $table->text('description')->nullable();
             $table->boolean('status')->default(false);
             $table->softDeletes();

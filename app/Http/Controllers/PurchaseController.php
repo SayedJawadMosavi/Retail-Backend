@@ -37,6 +37,9 @@ class PurchaseController extends Controller
             $query = $this->search($query, $request, $searchCol);
             $query = $query->with('vendor','container')->withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total')->withSum('items', 'yen_cost');
             $trashTotal = clone $query;
+            $total_purchase = clone $query;
+            $total_amount = $total_purchase->sum('total_amount');
+            $total_paid = $total_purchase->sum('total_paid');
             $trashTotal = $trashTotal->onlyTrashed()->count();
 
             $allTotal = clone $query;
@@ -52,7 +55,7 @@ class PurchaseController extends Controller
                 $result->remainder = round($result->total_price - $result->payments_sum_amount,2);
                 return $result;
             });
-            return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['purchases' => $allTotal, 'trash' => $trashTotal]]);
+            return response()->json(["data" => $results, 'total' => $total, "extraTotal" => ['purchases' => $allTotal, 'trash' => $trashTotal], 'purchase_info' => ['total_amount' => round($total_amount,2), 'total_paid' => round($total_paid,2), 'total_reminder'  => round($total_amount - $total_paid,2)]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
@@ -92,6 +95,7 @@ class PurchaseController extends Controller
         $amount=0;
         $total=0;
         $totals=0;
+
         foreach ($request->items as $item) {
 
             $item['created_by'] = $user_id;
@@ -113,6 +117,9 @@ class PurchaseController extends Controller
             $item['total']= round($totals,2);
             PurchaseDetail::create($item);
         }
+        $purchase->increment('total_amount',round($totals,2));
+        $vendors = Vendor::find($request->vendor_id['id']);
+        Vendor::where('id', $request->vendor_id['id'])->update(['total_amount'   => $vendors->total_amount + round($totals, 2)]);
 
         foreach ($request->extra_expense as $exp) {
             $exp['created_by'] = $user_id;
@@ -123,6 +130,8 @@ class PurchaseController extends Controller
         }
 
         if ($request->paid_amount > 0) {
+            $purchase->increment('total_paid',$request->paid_amount);
+            Vendor::where('id', $request->vendor_id['id'])->update(['total_paid'   => $vendors->total_paid + $request->paid_amount]);
             $payment = PurchasePayment::create(['purchase_id' => $purchase->id, 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $request->date, 'vendor_id' => $request->vendor_id['id']]);
             TreasuryLog::create(['table' => "purchase", 'table_id' => $payment->id, 'type' => 'withdraw',  'name' => 'بنام'. ' ( بیل نمبر  ' . $purchase->id .'   سوداګر'. '   '.$request->vendor_id['name'].  '  '.'کانتینر'. $request->container_id['name']. ')', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
         }
@@ -215,8 +224,11 @@ class PurchaseController extends Controller
                 $income = TreasuryLog::withTrashed()->where(['table' => 'purchase_extra_expense'])->whereIn('table_id', $expense)->restore();
             }
             if ($type == 'payments') {
+                $payment = PurchasePayment::withTrashed()->where('id', $id)->first();
+
+                Vendor::where('id', $payment->vendor_id)->increment('total_paid', $payment->amount);
                 $model = new PurchasePayment();
-                TreasuryLog::withTrashed()->where(['table' => 'orders'])->whereIn('table_id', $ids)->restore();
+                TreasuryLog::withTrashed()->where(['table' => 'purchase'])->whereIn('table_id', $ids)->restore();
             }
             if ($type == 'items')
                 $model = new PurchaseDetail();
@@ -261,6 +273,10 @@ class PurchaseController extends Controller
 
 
             if ($type == 'payments') {
+                $payment = PurchasePayment::where('id', $id)->first();
+
+                Vendor::where('id', $payment->vendor_id)->decrement('total_paid', $payment->amount);
+
                 $model = new PurchasePayment();
                 TreasuryLog::withTrashed()->where(['table' => 'purchase'])->whereIn('table_id', $ids)->delete();
             }
@@ -569,19 +585,19 @@ class PurchaseController extends Controller
 
     public function addPayment(Request $request)
     {
+
         try {
             $request->validate(
                 [
 
-                    'purchase_id' => ['required', 'exists:purchases,id'],
+
                     'created_at' => ['required', 'date', 'before_or_equal:' . now()],
                     'amount' => 'required|numeric|min:1',
                 ],
                 [
 
 
-                    'purchase_id.required' => 'د محصول نوم ضروری ده!',
-                    'purchase_id.exists' => 'د محصول نوم په یستم کی موجود نده!',
+
                     "created_at.required" => "د ثبت تاریخ ضروری ده",
                     "created_at.date" => "د ثبت تاریخ ضروری ده",
                     "created_at.before_or_equal" => "د ثبت نیټه د فعلی نیتي څخه لوړ نشی کیدای!",
@@ -597,17 +613,18 @@ class PurchaseController extends Controller
                 ]
             );
             DB::beginTransaction();
-            $purchase = Purchase::find($request->purchase_id);
+            $vendors = Vendor::find($request->vendor_id);
             $user_id = Auth::user()->id;
 
             $attributes = $request->all();
 
             $attributes['created_by'] = $user_id;
             $attributes['created_at'] = $attributes['created_at'];
-            $attributes['purchase_id'] = $purchase->id;
-            $attributes['vendor_id'] = $purchase->vendor_id;
+
+            $attributes['vendor_id'] = $request->vendor_id;
             $payment =  PurchasePayment::create($attributes);
-            TreasuryLog::create(['table' => "purchase", 'table_id' => $payment->id, 'type' => 'withdraw', 'name' => 'بنام'. ' ( بیل نمبر  ' . $purchase->id .'  سوداګر  '  .'    '. $request->vendor_name .'     ' .  'کانتینر'   .'   ' . $request->container_name. ')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+            $vendors->increment('total_paid',$request->amount);
+            TreasuryLog::create(['table' => "purchase", 'table_id' => $payment->id, 'type' => 'withdraw', 'name' => 'بنام'. ' ( سوداګر  '. $vendors->name .')', 'amount' => $request->amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
 
 
             DB::commit();
@@ -643,10 +660,11 @@ class PurchaseController extends Controller
             if (!$payment)
                 return response()->json('آی دی شتون نلري', 422);
 
-            $order              = Purchase::withSum('payments', 'amount')->withSum('extraExpense', 'price')->withSum('items', 'total')->find($payment->purchase_id);
-            $total = $order->items_sum_total+ $order->extra_expense_sum_price;
-            $paid = $order->payments_sum_amount - $payment->amount + $request->amount;
-
+            $order   = Vendor::withSum('payments', 'amount')->find($payment->vendor_id);
+            $total = $order->total_amount + $order->extra_expense_sum_price;
+            $paid = $order->total_paid - $payment->amount + $request->amount;
+            $order->decrement('total_paid', $payment->amount);
+            $order->increment('total_paid', $request->amount);
             if ($paid > $total) {
                 return response()->json('دا نشي کولی د مجموعې څخه ډیر وي', 422);
             }

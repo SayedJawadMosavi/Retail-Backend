@@ -81,6 +81,9 @@ class DashboardController extends Controller
             $query = new SellItem();
             $searchCol = ['quantity', 'cost', 'total','customer.first_name', 'income_price', 'description', 'created_at'];
             $query = $this->search($query, $request, $searchCol);
+            $total_profit = clone $query;
+            $total_amount = $total_profit->sum('total');
+            $income_price = $total_profit->sum('income_price');
             $query = $query->with('product_stock.product', 'stock', 'customer');
 
             $trashTotal = clone $query;
@@ -96,7 +99,7 @@ class DashboardController extends Controller
             $results = collect($query->items());
             $total = $query->total();
 
-            return response()->json(["data" => $results, 'total' => $total,  "extraTotal" => ['profit_lost' => $allTotal, 'trash' => $trashTotal], 'extra_profit' => ['true'  => true]]);
+            return response()->json(["data" => $results, 'total' => $total,  "extraTotal" => ['profit_lost' => $allTotal, 'trash' => $trashTotal], 'extra_profit' => ['true'  => true,'total_amount' => $total_amount, 'income_price' => $income_price, 'total_profit'  => round($total_amount - $income_price,2)]]);
         } catch (\Throwable $th) {
             return response()->json($th->getMessage(), 500);
         }
@@ -396,7 +399,7 @@ class DashboardController extends Controller
                 $date1 = new DateTime($request->end_date);
                 $endDate = $date1->format('Y-m-d');
 
-                $query =     $query->where('type', 'incoming')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+                $query =     $query->where('type', 'incoming')->where('category_id',$request->category_id['id'])->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
                 $total = clone $query;
                 $total_amount = $total->sum('amount');
                 $trashTotal = clone $query;
@@ -600,6 +603,9 @@ class DashboardController extends Controller
                 $query = new SellItem();
                 $searchCol = ['quantity', 'cost', 'total', 'income_price', 'description', 'created_at'];
                 $query = $this->search($query, $request, $searchCol);
+                $total_profit = clone $query;
+                $total_amount = $total_profit->sum('total');
+                $income_price = $total_profit->sum('income_price');
                 $query = $query->with('product_stock.product', 'stock', 'customer')->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
 
                 $trashTotal = clone $query;
@@ -615,7 +621,7 @@ class DashboardController extends Controller
                 $results = collect($query->items());
                 $total = $query->total();
 
-                return response()->json(["data" => $results, 'total' => $total,  "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal], 'extra_profit' => ['true'  => true]]);
+                return response()->json(["data" => $results, 'total' => $total,  "extraTotal" => ['reports' => $allTotal, 'trash' => $trashTotal], 'extra_profit' => ['true'  => true,'total_amount' => $total_amount, 'income_price' => $income_price, 'total_profit'  => round($total_amount - $income_price,2)]]);
             } catch (\Throwable $th) {
                 return response()->json($th->getMessage(), 500);
             }

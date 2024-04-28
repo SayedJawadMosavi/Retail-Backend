@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('status')->default('pending');
             $table->date('purchase_date');
             $table->text('description')->nullable();
-            
+            $table->double('total_amount')->default(0);
+            $table->double('total_paid')->default(0);
             $table->foreignId('vendor_id')->nullable()->constrained('vendors')->nullOnDelete()->onUpdate('cascade');
             $table->foreignId('container_id')->nullable()->constrained('containers')->nullOnDelete()->onUpdate('cascade');
             $table->softDeletes();

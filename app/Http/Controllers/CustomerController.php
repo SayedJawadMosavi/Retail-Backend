@@ -55,7 +55,7 @@ class CustomerController extends Controller
             if ($request->tab == 'trash') {
                 $query = $query->onlyTrashed();
             }
-            $query = $query->orderByRaw('(total_amount - total_paid) DESC');
+            $query = $query->orderByRaw('GREATEST(total_amount - total_paid, 0) DESC');
             $query = $query->latest()->paginate($request->itemPerPage);
 
             $results = collect($query->items());

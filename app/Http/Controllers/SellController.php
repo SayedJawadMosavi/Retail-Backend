@@ -150,9 +150,9 @@ class SellController extends Controller
             if ($request->paid_amount > 0) {
                 $sell->update(['total_paid'   => $sell->total_paid + $request->paid_amount]);
                 Customer::where('id', $request->customer_id['id'])->update(['total_paid'   => $customers->total_paid + $request->paid_amount]);
-                $payment = SellPayment::create(['sell_id' => $sell->id, 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $request->date, 'customer_id' => $request->customer_id['id']]);
+                $payment = SellPayment::create(['sell_id' => $sell->id, 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $dates->format("Y-m-d"), 'customer_id' => $request->customer_id['id']]);
 
-                TreasuryLog::create(['table' => "sell", 'table_id' => $payment->id, 'type' => 'deposit',  'name' => 'وصول' . ' (د بیل نمبر  ' . $sell->id . '   پیرودونکي' . '   ' . $request->customer_id['first_name'] .  ' )', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $payment->created_at,]);
+                TreasuryLog::create(['table' => "sell", 'table_id' => $payment->id, 'type' => 'deposit',  'name' => 'وصول' . ' (د بیل نمبر  ' . $sell->id . '   پیرودونکي' . '   ' . $request->customer_id['first_name'] .  ' )', 'amount' => $request->paid_amount, 'created_by' => $user_id, 'created_at' => $dates->format("Y-m-d")]);
             }
 
             DB::commit();
@@ -172,7 +172,12 @@ class SellController extends Controller
             $sell = new Sell();
             $sell = $sell->with('customer')->with(['payments' => fn ($q) => $q->withTrashed(), 'items' => fn ($q) => $q->withTrashed(), 'items.product_stock.product' => fn ($q) => $q->withTrashed(), 'items.product_stock.stock' => fn ($q) => $q->withTrashed()])->withTrashed()->withSum('payments', 'amount')->withSum('items', 'total')->withSum('items', 'cost')->find($id);
             $sell->total_price = round($sell->items_sum_total, 2);
+            $total_carton=0;
+            foreach ($sell->items as $key ) {
+                $total_carton+=$key->carton_quantity;
+            }
             $sell->remainder  = round($sell->total_price - $sell->payments_sum_amount, 2);
+            $sell->total_carton  = $total_carton;
 
             return response()->json($sell);
         } catch (\Throwable $th) {
