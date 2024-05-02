@@ -202,7 +202,7 @@ class DashboardController extends Controller
             if ($type == 'customers') {
 
                 $query = new Customer();
-                $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total');
+                $query = $query->withSum('payments', 'amount')->withSum('items', 'cost')->withSum('items', 'total')->orderByRaw('(total_amount - IFNULL(total_paid, 0)) DESC');
 
                 $query = $query->latest()->get();
 
